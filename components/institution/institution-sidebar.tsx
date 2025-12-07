@@ -17,6 +17,8 @@ import {
   LogOut,
   ChevronRight,
   LucideMessagesSquare,
+  HandCoins,
+  CreditCard,
 } from "lucide-react"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { usePathname } from "next/navigation"
@@ -28,7 +30,7 @@ import { getMyInstitutionProfile } from "@/lib/api/institution"
 
 const navigation = [
   { name: "Dashboard", href: "/institution", icon: LayoutDashboard, badge: null },
-  { name: "Notifications", href: "/institution/notifications", icon: LucideMessagesSquare, badge: null },
+  { name: "Payments", href: "/institution/payments", icon: CreditCard, badge: null },
   {
     name: "Course Management",
     href: "/institution/courses",
@@ -41,6 +43,7 @@ const navigation = [
     // ],
   },
   { name: "Instructors", href: "/institution/instructors", icon: UserCheck, badge: null },
+  
   { 
     name: "Communication", 
     href: "/institution/announcements", 
