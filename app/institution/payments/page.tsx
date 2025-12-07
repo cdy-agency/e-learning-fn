@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  getPayments, 
-  reviewPayment, 
+import {
+  getPayments,
+  reviewPayment,
   deletePayment,
-  type Payment 
+  type Payment,
 } from "@/lib/api/institution/payment";
 import { toast } from "react-toastify";
 import { PaymentReviewModal } from "@/components/institution/paymentReviewModal";
@@ -26,7 +26,9 @@ export default function InstitutionPaymentsPage() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "pending" | "approved" | "rejected"
+  >("all");
   const [modalState, setModalState] = useState<ModalState>({
     isOpen: false,
     action: "approve",
@@ -55,13 +57,18 @@ export default function InstitutionPaymentsPage() {
 
   // Review payment mutation
   const reviewMutation = useMutation({
-    mutationFn: ({ paymentId, action }: { paymentId: string; action: "approve" | "reject" }) =>
-      reviewPayment(paymentId, action),
+    mutationFn: ({
+      paymentId,
+      action,
+    }: {
+      paymentId: string;
+      action: "approve" | "reject";
+    }) => reviewPayment(paymentId, action),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["institution-payments"] });
       toast.success(
-        variables.action === "approve" 
-          ? "✅ Payment approved! Student has full access." 
+        variables.action === "approve"
+          ? "✅ Payment approved! Student has full access."
           : "❌ Payment rejected."
       );
       closeModal();
@@ -148,13 +155,16 @@ export default function InstitutionPaymentsPage() {
   }
 
   const payments = data?.payments || [];
-  const filteredPayments = filterStatus === "all" 
-    ? payments 
-    : payments.filter((p: Payment) => p.status === filterStatus);
+  const filteredPayments =
+    filterStatus === "all"
+      ? payments
+      : payments.filter((p: Payment) => p.status === filterStatus);
 
   const totalPages = Math.ceil((data?.total || 0) / 10);
 
-  const pendingCount = payments.filter((p: Payment) => p.status === "pending").length;
+  const pendingCount = payments.filter(
+    (p: Payment) => p.status === "pending"
+  ).length;
 
   return (
     <>
@@ -168,7 +178,8 @@ export default function InstitutionPaymentsPage() {
           </p>
           {pendingCount > 0 && (
             <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-              {pendingCount} pending payment{pendingCount !== 1 ? 's' : ''} awaiting review
+              {pendingCount} pending payment{pendingCount !== 1 ? "s" : ""}{" "}
+              awaiting review
             </div>
           )}
         </div>
@@ -205,8 +216,8 @@ export default function InstitutionPaymentsPage() {
             <div className="p-8 text-center text-gray-500">
               <p className="text-lg">No payments found</p>
               <p className="text-sm mt-2">
-                {filterStatus !== "all" 
-                  ? `No ${filterStatus} payments` 
+                {filterStatus !== "all"
+                  ? `No ${filterStatus} payments`
                   : "Payment submissions will appear here"}
               </p>
             </div>
@@ -288,22 +299,34 @@ export default function InstitutionPaymentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
-                          {payment.status === "pending" && (
-                            <>
-                              <button
-                                onClick={() => openModal("approve", payment)}
-                                className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => openModal("reject", payment)}
-                                className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
+                          <button
+                            onClick={() => openModal("approve", payment)}
+                            disabled={payment.status === "approved"}
+                            className={`px-3 py-1 text-xs font-medium rounded ${
+                              payment.status === "approved"
+                                ? "bg-green-600 text-white cursor-not-allowed"
+                                : "bg-green-600 text-white hover:bg-green-700"
+                            }`}
+                          >
+                            {payment.status === "approved"
+                              ? "✓ Approved"
+                              : "Approve"}
+                          </button>
+
+                          <button
+                            onClick={() => openModal("reject", payment)}
+                            disabled={payment.status === "rejected"}
+                            className={`px-3 py-1 text-xs font-medium rounded ${
+                              payment.status === "rejected"
+                                ? "bg-red-600 text-white cursor-not-allowed"
+                                : "bg-red-600 text-white hover:bg-red-700"
+                            }`}
+                          >
+                            {payment.status === "rejected"
+                              ? "✓ Rejected"
+                              : "Reject"}
+                          </button>
+
                           <button
                             onClick={() => openModal("delete", payment)}
                             className="px-3 py-1 bg-gray-600 text-white text-xs font-medium rounded hover:bg-gray-700"
