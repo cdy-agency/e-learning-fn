@@ -5,7 +5,7 @@ import { Course, Module, Lesson, Resource, CourseModulesResponse } from '../type
 import { API_URL } from '../axios';
 
 // Show toast notifications for success or error
-const showToast = (message: string, type: "success" | "error") => {
+export const showToast = (message: string, type: "success" | "error") => {
   if (type === "success") {
     toast.success(message);
   } else {

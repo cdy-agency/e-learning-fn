@@ -11,11 +11,7 @@ export async function getCoursesByInstitution(id: string) {
   return res.data;
 }
 
-/**
- * Confirm payment for an enrollment
- * @param enrollmentId - The enrollment ID to confirm payment for
- * @returns Updated enrollment object
- */
+
 export async function confirmPayment(enrollmentId: string) {
   try {
     const res = await axiosInstance.patch(`${API_URL}/api/payment/${enrollmentId}`);

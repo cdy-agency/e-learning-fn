@@ -53,8 +53,8 @@ export default function CoursesPage() {
   const courses = enrollments.map(enrollment => enrollment.course_id)
   
   const filteredCourses = courses.filter(course =>
-    course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.description.toLowerCase().includes(searchQuery.toLowerCase())
+    course?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course?.description?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Show loading state while checking authentication

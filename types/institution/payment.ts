@@ -8,3 +8,10 @@ export interface Notification {
   createdAt: string;
 }
 
+
+export type PaymentFormValues = {
+user_id: string;
+course_id: string;
+amount_paid: number;
+attachment: File | null;
+};

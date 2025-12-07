@@ -47,6 +47,7 @@ export interface Lesson {
   title: string;
   content: string;
   content_type: 'text' | 'video' | 'audio';
+  lessonStatus: 'mode'| 'pending' | 'approved'
   video_url?: string;
   duration_minutes: number;
   order_index: number;

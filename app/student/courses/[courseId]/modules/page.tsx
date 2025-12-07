@@ -13,6 +13,8 @@ import {
   FileText,
   ClipboardList,
   Lock,
+  Clock,
+  CheckCircle2,
   X,
 } from "lucide-react"
 import Link from "next/link"
@@ -26,6 +28,7 @@ export default function CourseModulesPage({ params }: { params: { courseId: stri
   const [courseModules, setCourseModules] = useState<any[]>([])
   const [userAccess, setUserAccess] = useState<any>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [modalStatus, setModalStatus] = useState<'mode' | 'pending' | 'approved'>('mode')
 
   useEffect(() => {
     const load = async () => {
@@ -43,8 +46,9 @@ export default function CourseModulesPage({ params }: { params: { courseId: stri
     load()
   }, [courseId])
 
-  const toggleModule = (moduleId: string, isLocked: boolean) => {
+  const toggleModule = (moduleId: string, isLocked: boolean, status: string) => {
     if (isLocked) {
+      setModalStatus(status as 'mode' | 'pending' | 'approved')
       setShowPaymentModal(true)
       return
     }
@@ -65,6 +69,42 @@ export default function CourseModulesPage({ params }: { params: { courseId: stri
     setOpenModules({})
   }
 
+  // Helper function to get modal content based on status
+  const getModalContent = () => {
+    switch (modalStatus) {
+      case 'mode':
+        return {
+          icon: <Lock className="h-5 w-5 text-orange-500" />,
+          title: "Payment Required",
+          message: "You need to complete the payment to access this module. Only the first module is available for free. Please make a payment to unlock all course content.",
+          showPaymentButton: true
+        }
+      case 'pending':
+        return {
+          icon: <Clock className="h-5 w-5 text-yellow-500" />,
+          title: "Payment Under Review",
+          message: "Your payment is currently being reviewed. You will be notified once it has been approved and you'll gain access to all course modules.",
+          showPaymentButton: false
+        }
+      case 'approved':
+        return {
+          icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
+          title: "Access Granted",
+          message: "Your payment has been approved! You now have full access to all course modules.",
+          showPaymentButton: false
+        }
+      default:
+        return {
+          icon: <Lock className="h-5 w-5 text-orange-500" />,
+          title: "Payment Required",
+          message: "You need to complete the payment to access this module.",
+          showPaymentButton: true
+        }
+    }
+  }
+
+  const modalContent = getModalContent()
+
   return (
     <div className="flex flex-1 flex-col">
       {/* Payment Modal */}
@@ -73,8 +113,8 @@ export default function CourseModulesPage({ params }: { params: { courseId: stri
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Lock className="h-5 w-5 text-orange-500" />
-                <h2 className="text-lg font-semibold text-gray-900">Payment Required</h2>
+                {modalContent.icon}
+                <h2 className="text-lg font-semibold text-gray-900">{modalContent.title}</h2>
               </div>
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -84,26 +124,29 @@ export default function CourseModulesPage({ params }: { params: { courseId: stri
               </button>
             </div>
             <p className="text-gray-600 mb-6">
-              You need to complete the payment to access this module. Only the first module is available for free. Please make a payment to unlock all course content.
+              {modalContent.message}
             </p>
-            <p>tel: +250 790 147 808</p>
+            {modalStatus === 'mode' && (
+              <p className="text-sm text-gray-500 mb-4">Tel: +250 790 147 808</p>
+            )}
             <div className="flex gap-3">
               <Button
                 onClick={() => setShowPaymentModal(false)}
                 variant="outline"
                 className="flex-1"
               >
-                Cancel
+                {modalContent.showPaymentButton ? 'Cancel' : 'Close'}
               </Button>
-              <Button
-                onClick={() => {
-                  // Add your payment logic here
-                  window.location.href = `/student/courses/${courseId}/payment`
-                }}
-                className="flex-1 bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Proceed to Payment
-              </Button>
+              {modalContent.showPaymentButton && (
+                <Button
+                  onClick={() => {
+                    window.location.href = `/student/courses/${courseId}/payment`
+                  }}
+                  className="flex-1 bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Proceed to Payment
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -146,58 +189,86 @@ export default function CourseModulesPage({ params }: { params: { courseId: stri
           {courseModules.map((module, index) => {
             const moduleKey = `${module.id}-${index}`;
             const isLocked = module.isLocked || false;
+            const status = module.moduleStatus || 'mode';
+            
+            // Helper function to get status badge
+            const getStatusBadge = () => {
+              switch (status) {
+                case 'mode':
+                  return (
+                    <span className="ml-auto text-xs text-orange-600 font-normal flex items-center gap-1">
+                      <Lock className="h-3 w-3" />
+                      Payment Required
+                    </span>
+                  )
+                case 'pending':
+                  return (
+                    <span className="ml-auto text-xs text-yellow-600 font-normal flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Under Review
+                    </span>
+                  )
+                case 'approved':
+                  return null // No badge for approved status
+                default:
+                  return null
+              }
+            }
+
             return (
               <div key={moduleKey} className="rounded-md border border-gray-200 bg-white shadow-sm">
                 <div
                   className="flex w-full items-center p-4 text-left font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
-                  onClick={() => toggleModule(moduleKey, isLocked)}
+                  onClick={() => toggleModule(moduleKey, isLocked, status)}
                 >
                   {isLocked ? (
-                    <Lock className="h-4 w-4 mr-2 text-orange-500" />
+                    status === 'mode' ? (
+                      <Lock className="h-4 w-4 mr-2 text-orange-500" />
+                    ) : status === 'pending' ? (
+                      <Clock className="h-4 w-4 mr-2 text-yellow-500" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 mr-2" />
+                    )
                   ) : (
-                    openModules[moduleKey] ? <ChevronDown /> : <ChevronRight />
+                    openModules[moduleKey] ? <ChevronDown className="mr-2" /> : <ChevronRight className="mr-2" />
                   )}
-                  <span className={isLocked ? "text-gray-500" : ""}>{module.title}</span>
-                  {isLocked && (
-                    <span className="ml-auto text-xs text-orange-600 font-normal">
-                      Payment Required
-                    </span>
-                  )}
+                  <span className={isLocked && status !== 'approved' ? "text-gray-500" : ""}>{module.title}</span>
+                  {isLocked && getStatusBadge()}
                 </div>
             
                 {openModules[moduleKey] && !isLocked && (
                   <div className="border-t border-gray-200 bg-gray-50 p-4">
-                  <div className="space-y-2">
-                    {(module.items || module.lessons || []).map((item: any, itemIndex: number) => (
-                      <div 
-                        key={itemIndex} 
-                        className="flex items-center gap-3 p-2 rounded-md hover:bg-blue-50"
-                      >
-                        {item.type === "page" && <FileText className="h-4 w-4 text-gray-500" />}
-                        {item.type === "assignment" && <ClipboardList className="h-4 w-4 text-gray-500" />}
-                        <Link
-                          href={`/student/courses/${courseId}/pages/${item.url || item._id}`}
-                          className="text-sm text-blue-600 hover:underline flex-1"
-                          onClick={(e) => {
-                            // Double-check if module is locked (in case state changed)
-                            if (isLocked) {
-                              e.preventDefault()
-                              setShowPaymentModal(true)
-                            }
-                          }}
+                    <div className="space-y-2">
+                      {(module.items || module.lessons || []).map((item: any, itemIndex: number) => (
+                        <div 
+                          key={itemIndex} 
+                          className="flex items-center gap-3 p-2 rounded-md hover:bg-blue-50"
                         >
-                          {item.title}
-                        </Link>
-                        {item.dueDate && (
-                          <span className="ml-auto text-xs text-gray-500">
-                            {item.dueDate} {item.points}
-                          </span>
-                        )}
-                        {item.status && <span className="ml-auto text-xs text-gray-500">{item.status}</span>}
-                      </div>
-                    ))}
+                          {item.type === "page" && <FileText className="h-4 w-4 text-gray-500" />}
+                          {item.type === "assignment" && <ClipboardList className="h-4 w-4 text-gray-500" />}
+                          <Link
+                            href={`/student/courses/${courseId}/pages/${item.url || item._id}`}
+                            className="text-sm text-blue-600 hover:underline flex-1"
+                            onClick={(e) => {
+                              if (isLocked) {
+                                e.preventDefault()
+                                setModalStatus(status)
+                                setShowPaymentModal(true)
+                              }
+                            }}
+                          >
+                            {item.title}
+                          </Link>
+                          {item.dueDate && (
+                            <span className="ml-auto text-xs text-gray-500">
+                              {item.dueDate} {item.points}
+                            </span>
+                          )}
+                          {item.status && <span className="ml-auto text-xs text-gray-500">{item.status}</span>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
                 )}
               </div>
             );

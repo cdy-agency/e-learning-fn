@@ -1,11 +1,25 @@
 import { API_URL, getAuthHeaders, getAuthHeadersFormData } from '../config';
+import axiosInstance from '@/lib/axios';
 
 export async function getStudentEnrolledCourses() {
-  const response = await fetch(`${API_URL}/api/enrollement`, {
-    headers: getAuthHeaders(),
-  });
-  if (!response.ok) throw new Error('Failed to fetch enrolled courses');
-  return response.json();
+  try {
+    const response = await axiosInstance.get(`/api/enrollment`, {
+      headers: getAuthHeaders(),
+    });
+
+    return response.data; 
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.message ||
+      "Failed to fetch enrolled courses";
+
+    const error: any = new Error(message);
+    error.status = err.response?.status;
+    error.payload = err.response?.data;
+
+    throw error;
+  }
 }
 
 export async function getCourseProgress(courseId: string) {
