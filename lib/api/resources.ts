@@ -29,3 +29,11 @@ export async function uploadResource(
   return response.data;
 }
 
+export async function deleteResource(resourceId: string) {
+  const response = await axiosInstance.delete(`${API_URL}/api/resources/${resourceId}`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+  return response.data;
+}

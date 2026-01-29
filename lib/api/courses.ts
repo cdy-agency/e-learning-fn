@@ -273,31 +273,45 @@ export async function createModule(course_id: string, title: string, description
   }
 }
 
-export async function createLesson(module_id: string, title: string, content: string, content_type: string, duration_minutes: number, video: File | null) {
+export async function createLesson(
+  module_id: string,
+  title: string,
+  content: string,
+  content_type: "text",
+  duration_minutes: number
+) {
   try {
-    const formData = new FormData();
-    formData.append("module_id", module_id);
-    formData.append("title", title);
-    formData.append("content", content);
-    formData.append("content_type", content_type);
-    formData.append("duration_minutes", duration_minutes.toString());
-
-    if (video) {
-      formData.append("video", video);
+    if (!module_id) {
+      throw new Error("Module ID is missing");
     }
 
-    const response = await axios.post(`${API_URL}/api/courses/lesson`, formData,{
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    const response = await axios.post(
+      `${API_URL}/api/courses/lesson`,
+      {
+        module_id,
+        title,
+        content,
+        content_type,
+        duration_minutes,
       },
-    });
-    showToast('Lesson created successfully', 'success');
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    showToast("Lesson created successfully", "success");
     return response.data;
-  } catch (error) {
-    showToast('Failed to create lesson', 'error');
+  } catch (error: any) {
+    const message =
+      error?.response?.data?.message || "Failed to create lesson";
+    showToast(message, "error");
     throw error;
   }
 }
+
 
 
 export async function fetchEnrolledCourses() {

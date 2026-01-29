@@ -21,11 +21,11 @@ import { Label } from "@/components/ui/label";
 import ListItem from "@tiptap/extension-list-item";
 import Heading from "@tiptap/extension-heading";
 import { Image } from "@tiptap/extension-image";
-import ImageExtension from "@tiptap/extension-image";
+import Youtube from "@tiptap/extension-youtube";
 import { useEffect } from "react";
 import { MenuBar } from "./MenuBar";
-import { BubbleMenu } from "@tiptap/extension-bubble-menu";
 import { ImageBubbleMenu } from "./ImageBubbleMenu";
+import { Video } from "./Videoextension";
 
 interface TiptapEditorProps {
   name: string;
@@ -52,131 +52,72 @@ export default function TiptapEditor({
 }: TiptapEditorProps) {
   const editor = useEditor({
     extensions: [
-      ImageExtension.configure({
-        HTMLAttributes: {
-          class: "rounded-lg border border-border max-w-full h-auto",
-        },
+      StarterKit.configure({
+        bulletList: { keepMarks: true },
+        orderedList: { keepMarks: true },
       }),
+
       Heading.configure({
         levels: [1, 2, 3, 4, 5, 6],
-        HTMLAttributes: {
-          class: "tiptap-heading",
-        },
+        HTMLAttributes: { class: "tiptap-heading" },
       }),
-      ListItem.configure({
-        HTMLAttributes: {
-          class: "tiptap-list-item",
-        },
-      }),
+
+      Underline,
+
       Link.configure({
-        openOnClick: true,
+        openOnClick: false,
         autolink: true,
         linkOnPaste: true,
         HTMLAttributes: {
-          class: "text-blue-600 underline",
+          class: "text-primary underline underline-offset-2",
           target: "_blank",
           rel: "noopener noreferrer",
         },
       }),
-      StarterKit.configure({
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: false,
-          HTMLAttributes: {
-            class: "tiptap-bullet-list",
-          },
-        },
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: false,
-          HTMLAttributes: {
-            class: "tiptap-ordered-list",
-          },
-        },
-        listItem: {
-          HTMLAttributes: {
-            class: "tiptap-list-item",
-          },
-        },
-      }),
-      Underline,
-      Link.configure({
-        openOnClick: false,
+
+      Youtube.configure({
+        controls: true,
+        nocookie: false,
         HTMLAttributes: {
-          class: "text-primary underline underline-offset-2 hover:text-primary/80 cursor-pointer",
+          class: "rounded-lg border max-w-full my-4",
         },
       }),
+
+      // Custom Video extension for uploaded videos and direct URLs
+      Video.configure({
+        HTMLAttributes: {
+          class: "rounded-lg border max-w-full my-4",
+        },
+      }),
+
       Image.configure({
         HTMLAttributes: {
           class: "rounded-lg border border-border max-w-full h-auto",
         },
       }),
+
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
+
       Highlight.configure({ multicolor: true }),
       Typography,
       Placeholder.configure({ placeholder }),
-      TaskList.configure({
-        HTMLAttributes: {
-          class: "tiptap-task-list",
-        },
-      }),
-      TaskItem.configure({
-        nested: true,
-        HTMLAttributes: {
-          class: "tiptap-task-item",
-        },
-      }),
+
+      TaskList,
+      TaskItem.configure({ nested: true }),
+
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,
-      TextStyle,
+
       TextStyle,
       Color,
-      BubbleMenu.configure({
-      }),
     ],
     content,
     onUpdate({ editor }) {
       onChange?.(editor.getHTML());
-    },
-    editorProps: {
-      attributes: {
-        class: [
-          "prose",
-          "prose-sm",
-          "sm:prose-base",
-          "lg:prose-lg",
-          "xl:prose-2xl",
-          "mx-auto",
-          "focus:outline-none",
-          "min-h-[400px]",
-          "p-5",
-          "bg-white",
-          "rounded-xl",
-          "border",
-          "border-gray-200",
-          "shadow-md",
-          "transition-all",
-          "placeholder:text-gray-400",
-          "text-gray-900",
-          "text-base",
-          "leading-relaxed",
-          "focus:ring-2",
-          "focus:ring-primary",
-          className,
-        ].join(" "),
-        style:
-          "min-height:400px;font-size:1.05rem;line-height:1.8;background:#fff;border-radius:0.75rem;border:1px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,0.04);padding:1.25rem;transition:box-shadow 0.2s;outline:none;",
-        placeholder: placeholder,
-        spellCheck: "true",
-        autoCorrect: "on",
-        autoCapitalize: "sentences",
-        tabIndex: "0",
-        role: "textbox",
-      },
     },
     immediatelyRender: false,
   });
@@ -206,10 +147,10 @@ export default function TiptapEditor({
       <div className="relative bg-white rounded-lg border border-gray-200 overflow-hidden">
         <MenuBar editor={editor} onUploadError={onUploadError} />
 
-  <div className="relative">
+        <div className="relative p-4 min-h-[400px]">
           <EditorContent
             editor={editor}
-            className="prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl mx-auto"
+            className="prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl mx-auto prose-neutral focus:outline-none"
             style={{ listStyle: "inherit" }}
           />
         </div>
@@ -217,10 +158,48 @@ export default function TiptapEditor({
 
       {editor && <ImageBubbleMenu editor={editor} />}
 
-      {/* Enhanced CSS for better image display with visible titles/captions */}
+      {/* Enhanced CSS for better image and video display */}
       <style jsx global>{`
         .ProseMirror {
           outline: none;
+          padding: 1rem;
+          min-height: 300px;
+        }
+
+        .ProseMirror:focus {
+          outline: none;
+        }
+
+        .ProseMirror p.is-editor-empty:first-child::before {
+          color: #adb5bd;
+          content: attr(data-placeholder);
+          float: left;
+          height: 0;
+          pointer-events: none;
+        }
+
+        /* Video styling */
+        .ProseMirror video {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin: 1rem 0;
+          display: block;
+        }
+
+        /* YouTube iframe styling */
+        .ProseMirror iframe {
+          max-width: 100%;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin: 1rem 0;
+          display: block;
+          aspect-ratio: 16 / 9;
+          width: 100%;
+          height: auto;
         }
 
         /* Image container with caption styling */

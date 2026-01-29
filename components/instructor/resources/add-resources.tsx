@@ -47,6 +47,11 @@ export const AddResourceForm = ({ lessonId, onSuccess }: { lessonId: string, onS
     formData.append('lesson_id', lessonId)
 
     try {
+      console.log('Submitting form with values:', values)
+      console.log('Lesson ID:', lessonId)
+      console.log('File:', values.file)
+      console.log('Resource Type:', values.resource_type)
+      console.log('Title:', values.title)
       const response = await uploadResource(lessonId, values.title, values.resource_type, values.file)
       toast.success(response.message || 'Resource added')
       onSuccess()
@@ -133,4 +138,3 @@ export const AddResourceForm = ({ lessonId, onSuccess }: { lessonId: string, onS
     </Form>
   )
 }
-

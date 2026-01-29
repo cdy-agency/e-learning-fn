@@ -19,21 +19,22 @@ export function LessonForm({
   const [content, setContent] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      await createLesson(
-        moduleId,
-        title,
-        content,
-        "text", // Always use text, since all content is in Tiptap
-        parseInt(durationMinutes, 10),
-        null // No video upload
-      );
-      onSuccess();
-    } catch (error) {
-      console.error("Error creating lesson:", error);
-    }
-  };
+  e.preventDefault();
+
+  try {
+    await createLesson(
+      moduleId,
+      title.trim(),
+      content,
+      "text",
+      Number(durationMinutes)
+    );
+
+    onSuccess();
+  } catch (error) {
+    console.error("Error creating lesson:", error);
+  }
+};
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-5xl w-full mx-auto">

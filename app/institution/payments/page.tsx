@@ -42,8 +42,8 @@ export default function InstitutionPaymentsPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchInput);
-      setPage(1); // Reset to page 1 when search changes
-    }, 500); // Wait 500ms after user stops typing
+      setPage(1);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [searchInput]);

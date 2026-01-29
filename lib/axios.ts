@@ -19,10 +19,7 @@ const RETRY_DELAY = 1000;
 // Create axios instance with default config
 export const axiosInstance: AxiosInstance = axios.create({
     baseURL: API_URL,
-    timeout: 10000, // 10 seconds timeout
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    timeout: 10000,
 });
 
 // Request interceptor for adding auth token

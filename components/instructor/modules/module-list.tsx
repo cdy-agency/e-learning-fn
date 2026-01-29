@@ -57,9 +57,9 @@ export function ModuleList({
               <div className="flex items-start md:items-center gap-4">
                 <div className="flex flex-col gap-5">
                   <h3 className="text-lg text-start font-semibold">{module.title}</h3>
-                  <p className="text-sm text-start text-muted-foreground pose">
+                  <div className="text-sm text-start text-muted-foreground pose">
                     <div dangerouslySetInnerHTML={{ __html: module.description || '' }} />
-                  </p>
+                  </div>
                 </div>
               </div>
             </AccordionTrigger>

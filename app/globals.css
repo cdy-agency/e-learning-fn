@@ -407,3 +407,7 @@
     -moz-appearance: textfield;
   }
 }
+
+.ProseMirror {
+  color: #000000;
+}

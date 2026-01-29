@@ -2,14 +2,19 @@
 
 import { LessonForm } from "@/components/instructor/lessons/lesson-form";
 import { useRouter } from "next/navigation";
+import { use } from "react";
 
 interface AddLessonPageProps {
-  params: { moduleId: string };
+  params: Promise<{ 
+    courseId: string;
+    moduleId: string;
+  }>;
 }
 
 export default function AddLessonPage({ params }: AddLessonPageProps) {
   const router = useRouter();
-  const { moduleId } = params;
+  const resolvedParams = use(params);
+  const { courseId, moduleId } = resolvedParams
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -17,10 +22,10 @@ export default function AddLessonPage({ params }: AddLessonPageProps) {
         <LessonForm
           moduleId={moduleId}
           onSuccess={() => {
-            router.back(); // or router.push to a specific page
+            router.back();
           }}
         />
       </div>
     </div>
   );
-} 
+}
