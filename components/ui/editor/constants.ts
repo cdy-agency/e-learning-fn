@@ -101,3 +101,38 @@ export const IMAGE_SIZE_PRESETS = {
   extraLarge: { width: 1200, height: 800, label: "Extra Large (1200x800)" },
   original: { width: 0, height: 0, label: "Original Size" }
 } as const; 
+
+export const VIDEO_SOURCE_TYPES = {
+  youtube: {
+    label: "YouTube",
+    placeholder: "https://www.youtube.com/watch?v=...",
+    pattern: /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/,
+  },
+  vimeo: {
+    label: "Vimeo",
+    placeholder: "https://vimeo.com/...",
+    pattern: /^(https?:\/\/)?(www\.)?vimeo\.com\/\d+/,
+  },
+  dailymotion: {
+    label: "Dailymotion",
+    placeholder: "https://www.dailymotion.com/video/...",
+    pattern: /^(https?:\/\/)?(www\.)?dailymotion\.com\/video\/[\w-]+/,
+  },
+  twitch: {
+    label: "Twitch",
+    placeholder: "https://www.twitch.tv/videos/...",
+    pattern: /^(https?:\/\/)?(www\.)?twitch\.tv\/(videos\/\d+|[\w-]+)/,
+  },
+  direct: {
+    label: "Direct Video URL",
+    placeholder: "https://example.com/video.mp4",
+    pattern: /^https?:\/\/.+\.(mp4|webm|ogg)(\?.*)?$/i,
+  },
+} as const;
+
+// Video file validation constants
+export const VIDEO_VALIDATION = {
+  MAX_FILE_SIZE: 100 * 1024 * 1024, // 100MB
+  ALLOWED_TYPES: ["video/mp4", "video/webm", "video/ogg"],
+  ALLOWED_EXTENSIONS: [".mp4", ".webm", ".ogg"],
+} as const;

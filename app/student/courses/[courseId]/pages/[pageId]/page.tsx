@@ -4,17 +4,20 @@ import { ArrowLeft, ArrowRight, BookMarked, Share2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { useEffect, useState } from "react"
+import { use, useEffect, useState } from "react"
 import { fetchModulesByCourseId } from "@/lib/api/courses"
 import { formatContent } from "@/lib/formContent"
 
 export default function CoursePageContent({
   params,
 }: {
-  params: { courseId: string; pageId: string }
+  params: Promise<{ courseId: string; pageId: string }>
 }) {
-  const { courseId, pageId } = params
+  const { courseId, pageId } = use(params);
   const [page, setPage] = useState<any | null>(null)
+  
+  console.log("CoursePageContent Params:", courseId)
+  console.log("PageContent Params:", pageId)
 
   useEffect(() => {
     const load = async () => {

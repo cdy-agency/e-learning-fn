@@ -301,13 +301,11 @@ export default function HeroSection() {
                     <div className="transform -rotate-90 whitespace-nowrap text-xs xl:text-sm font-medium tracking-wide">
                       {slide.industry.length > 15 ? slide.industry.substring(0, 12) + "..." : slide.industry}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
+                    <div
                       className="absolute bottom-6 text-white hover:bg-white/20 rounded-full transition-all duration-300 group-hover:scale-110"
                     >
                       <Plus className="h-3 w-3 xl:h-4 xl:w-4" />
-                    </Button>
+                    </div>
                   </button>
                 </div>
               )
