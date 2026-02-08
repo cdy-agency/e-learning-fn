@@ -14,6 +14,12 @@ import {
   Edit3,
   Trash2,
   Rocket,
+  Image as ImageIcon,
+  Video,
+  Link,
+  Upload,
+  X,
+  Check,
 } from "lucide-react";
 import {
   Dialog,
@@ -34,6 +40,10 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
   const [isAddModuleOpen, setIsAddModuleOpen] = useState(false);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoThumbnailFile, setVideoThumbnailFile] = useState<File | null>(null);
+  const [videoThumbnailPreview, setVideoThumbnailPreview] = useState<string | null>(null);
+  const [videoSource, setVideoSource] = useState<"upload" | "external">("upload");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const {
     currentCourse,
@@ -70,14 +80,14 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
     );
   }
 
-  const uploadThumbnailToCloudinary = async (file: File): Promise<string> => {
+  const uploadFileToCloudinary = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
 
     const res = await uploadApi.uploadFileOrImage(formData);
 
     if (!res?.url) {
-      throw new Error("No video URL returned");
+      throw new Error("No URL returned from upload");
     }
 
     return res.url;
@@ -139,6 +149,9 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
                 difficulty_level: currentCourse.difficulty_level,
                 status: currentCourse.status ?? "draft",
                 thumbnail: currentCourse.thumbnail,
+                video: currentCourse.video || "",
+                videoThumbnail: currentCourse.videoThumbnail || "",
+                externalUrl: currentCourse.externalUrl || "",
                 prerequisites: currentCourse.prerequisites,
                 start_date: currentCourse.start_date
                   ? new Date(currentCourse.start_date)
@@ -153,7 +166,11 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
               });
 
               setThumbnailPreview(currentCourse.thumbnail);
+              setVideoThumbnailPreview(currentCourse.videoThumbnail || null);
               setThumbnailFile(null);
+              setVideoFile(null);
+              setVideoThumbnailFile(null);
+              setVideoSource(currentCourse.externalUrl ? "external" : "upload");
 
               setIsEditOpen(true);
             }}
@@ -194,32 +211,42 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
 
       {/* Edit Course Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="w-[95vw] max-w-[1100px] h-[95vh] p-0 ">
+        <DialogContent className="w-[95vw] max-w-[1100px] h-[95vh] p-0">
           <div className="flex flex-col h-full min-h-0">
-            <DialogHeader className="px-6 py-4 border-b bg-gray-50 shrink-0">
-              <DialogTitle className="text-lg font-semibold text-gray-900">
+            <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-blue-600 to-blue-700 shrink-0">
+              <DialogTitle className="text-lg font-semibold text-white flex items-center gap-2">
+                <Edit3 className="h-5 w-5" />
                 Edit Course Details
               </DialogTitle>
-              <p className="text-sm text-gray-500">
-                Update all information related to this course.
-              </p>
             </DialogHeader>
 
             {editState && (
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
-
-                  let thumbnailUrl = editState.thumbnail;
+                  setIsUploadingImage(true);
 
                   try {
+                    let thumbnailUrl = editState.thumbnail;
+                    let videoUrl = editState.video;
+                    let videoThumbnailUrl = editState.videoThumbnail;
+
+                    // Upload new thumbnail if selected
                     if (thumbnailFile) {
-                      setIsUploadingImage(true);
-                      thumbnailUrl =
-                        await uploadThumbnailToCloudinary(thumbnailFile);
+                      thumbnailUrl = await uploadFileToCloudinary(thumbnailFile);
                     }
 
-                    await updateCourse(courseId, {
+                    // Upload new video if selected
+                    if (videoFile) {
+                      videoUrl = await uploadFileToCloudinary(videoFile);
+                    }
+
+                    // Upload new video thumbnail if selected
+                    if (videoThumbnailFile) {
+                      videoThumbnailUrl = await uploadFileToCloudinary(videoThumbnailFile);
+                    }
+
+                    const payload: any = {
                       title: editState.title,
                       description: editState.description,
                       price: Number(editState.price),
@@ -232,40 +259,91 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
                       is_certified: editState.is_certified,
                       duration_weeks: Number(editState.duration_weeks),
                       thumbnail: thumbnailUrl,
-                    } as any);
+                      videoThumbnail: videoThumbnailUrl,
+                    };
 
+                    // Add video or externalUrl based on source
+                    if (videoSource === "external") {
+                      payload.externalUrl = editState.externalUrl;
+                      payload.video = ""; // Clear video if using external
+                    } else {
+                      payload.video = videoUrl;
+                      payload.externalUrl = ""; // Clear external if using video
+                    }
+
+                    await updateCourse(courseId, payload);
                     setIsEditOpen(false);
-                  } catch (err) {
-                    alert("Failed to upload thumbnail");
-                    console.error(err);
+                  } catch (error) {
+                    console.error("Failed to update course:", error);
                   } finally {
                     setIsUploadingImage(false);
                   }
                 }}
-                className="flex-1 min-h-0 overflow-y-auto px-6 py-6 space-y-8"
+                className="flex-1 overflow-y-auto px-6 py-4 space-y-6"
               >
+                {/* Basic Information Section */}
                 <section className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800 border-b pb-2">
                     Basic Information
                   </h3>
 
+                  <div>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">
+                      Course Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      value={editState.title}
+                      onChange={(e) =>
+                        setEditState({ ...editState, title: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">
+                      Description
+                    </label>
+                    <textarea
+                      rows={4}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+                      value={editState.description}
+                      onChange={(e) =>
+                        setEditState({
+                          ...editState,
+                          description: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-1 text-sm">Course Title</label>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">
+                        Price <span className="text-red-500">*</span>
+                      </label>
                       <input
+                        type="number"
                         required
-                        className="w-full border rounded px-3 py-2 text-sm"
-                        value={editState.title}
+                        min="0"
+                        step="0.01"
+                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        value={editState.price}
                         onChange={(e) =>
-                          setEditState({ ...editState, title: e.target.value })
+                          setEditState({ ...editState, price: e.target.value })
                         }
                       />
                     </div>
 
                     <div>
-                      <label className="block mb-1 text-sm">Category</label>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">
+                        Category
+                      </label>
                       <input
-                        className="w-full border rounded px-3 py-2 text-sm"
+                        type="text"
+                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         value={editState.category}
                         onChange={(e) =>
                           setEditState({
@@ -277,96 +355,13 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block mb-1 text-sm">Description</label>
-                    <textarea
-                      rows={4}
-                      className="w-full border rounded px-3 py-2 text-sm"
-                      value={editState.description}
-                      onChange={(e) =>
-                        setEditState({
-                          ...editState,
-                          description: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </section>
-
-                {/* ================= MEDIA ================= */}
-                <section className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <section className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                          {/* Upload */}
-                          <div>
-                            <label className="block mb-1 text-sm">
-                              Upload Thumbnail
-                            </label>
-
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="w-full text-sm"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-
-                                setThumbnailFile(file);
-                                setThumbnailPreview(URL.createObjectURL(file));
-                              }}
-                            />
-
-                            <p className="text-xs text-gray-500 mt-1">
-                              JPG, PNG, WEBP – max 5MB
-                            </p>
-                          </div>
-
-                          {/* Preview */}
-                          <div className="flex justify-center">
-                            {thumbnailPreview ? (
-                              <Image
-                                src={thumbnailPreview}
-                                alt="Thumbnail Preview"
-                                width={400}
-                                height={240}
-                                className="h-40 w-full max-w-sm object-cover rounded border"
-                              />
-                            ) : (
-                              <div className="h-40 w-full max-w-sm flex items-center justify-center border rounded text-gray-400 text-sm">
-                                No thumbnail selected
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </section>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-800 border-b pb-2">
-                    Pricing & Difficulty
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block mb-1 text-sm">Price</label>
-                      <input
-                        type="number"
-                        className="w-full border rounded px-3 py-2 text-sm"
-                        value={editState.price}
-                        onChange={(e) =>
-                          setEditState({ ...editState, price: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block mb-1 text-sm">Difficulty</label>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">
+                        Difficulty Level
+                      </label>
                       <select
-                        className="w-full border rounded px-3 py-2 text-sm bg-white"
+                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         value={editState.difficulty_level}
                         onChange={(e) =>
                           setEditState({
@@ -382,12 +377,13 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
                     </div>
 
                     <div>
-                      <label className="block mb-1 text-sm">
+                      <label className="block mb-1 text-sm font-medium text-gray-700">
                         Duration (weeks)
                       </label>
                       <input
                         type="number"
-                        className="w-full border rounded px-3 py-2 text-sm"
+                        min="0"
+                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         value={editState.duration_weeks}
                         onChange={(e) =>
                           setEditState({
@@ -400,17 +396,248 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
                   </div>
                 </section>
 
+                {/* Media Section */}
                 <section className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800 border-b pb-2">
-                    Course Schedule
+                    Media & Resources
+                  </h3>
+
+                  {/* Course Thumbnail - COMPACT */}
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-blue-600" />
+                      Course Thumbnail
+                    </label>
+                    
+                    {thumbnailPreview && (
+                      <div className="flex items-center gap-3 mb-2 p-2 bg-gray-50 rounded-lg border">
+                        <div className="relative w-20 h-20 rounded overflow-hidden flex-shrink-0">
+                          <Image
+                            src={thumbnailPreview}
+                            alt="Thumbnail"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-gray-600 truncate">
+                            {thumbnailFile ? thumbnailFile.name : "Current thumbnail"}
+                          </p>
+                          {!thumbnailFile && (
+                            <p className="text-xs text-blue-600 mt-0.5">Existing</p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setThumbnailPreview(null);
+                            setThumbnailFile(null);
+                            setEditState({ ...editState, thumbnail: "" });
+                          }}
+                          className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600 flex-shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setThumbnailFile(file);
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setThumbnailPreview(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Video Source Selection */}
+                  <div>
+                    <label className="block mb-3 text-sm font-medium text-gray-700">
+                      Course Video Source
+                    </label>
+                    <div className="flex gap-4 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setVideoSource("upload")}
+                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                          videoSource === "upload"
+                            ? "border-blue-600 bg-blue-50 text-blue-700"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                        }`}
+                      >
+                        <Upload className="w-5 h-5 mx-auto mb-1" />
+                        Upload Video
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoSource("external")}
+                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                          videoSource === "external"
+                            ? "border-blue-600 bg-blue-50 text-blue-700"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                        }`}
+                      >
+                        <Link className="w-5 h-5 mx-auto mb-1" />
+                        External URL
+                      </button>
+                    </div>
+
+                    {videoSource === "upload" ? (
+                      <div className="space-y-4">
+                        {/* Video File - COMPACT */}
+                        <div>
+                          <label className="block mb-2 text-xs font-medium text-gray-600 flex items-center gap-2">
+                            <Video className="w-4 h-4 text-blue-600" />
+                            Video File
+                          </label>
+
+                          {/* Show existing video */}
+                          {editState.video && !videoFile && (
+                            <div className="flex items-center gap-3 mb-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                              <Video className="w-10 h-10 text-blue-600 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-700">Current Video</p>
+                                <p className="text-xs text-gray-500 truncate">
+                                  {editState.video}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditState({ ...editState, video: "" });
+                                }}
+                                className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600 flex-shrink-0"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+
+                          <input
+                            type="file"
+                            accept="video/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setVideoFile(file);
+                              }
+                            }}
+                            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer"
+                          />
+                          {videoFile && (
+                            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                              <Check className="w-3 h-3" />
+                              New: {videoFile.name}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Video Thumbnail - COMPACT */}
+                        <div>
+                          <label className="block mb-2 text-xs font-medium text-gray-600 flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-blue-600" />
+                            Video Thumbnail
+                          </label>
+                          
+                          {videoThumbnailPreview && (
+                            <div className="flex items-center gap-3 mb-2 p-2 bg-gray-50 rounded-lg border">
+                              <div className="relative w-20 h-20 rounded overflow-hidden flex-shrink-0">
+                                <Image
+                                  src={videoThumbnailPreview}
+                                  alt="Video thumbnail"
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-gray-600 truncate">
+                                  {videoThumbnailFile ? videoThumbnailFile.name : "Current video thumbnail"}
+                                </p>
+                                {!videoThumbnailFile && (
+                                  <p className="text-xs text-blue-600 mt-0.5">Existing</p>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVideoThumbnailPreview(null);
+                                  setVideoThumbnailFile(null);
+                                  setEditState({ ...editState, videoThumbnail: "" });
+                                }}
+                                className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600 flex-shrink-0"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                          
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setVideoThumbnailFile(file);
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setVideoThumbnailPreview(reader.result as string);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block mb-2 text-xs font-medium text-gray-600 flex items-center gap-2">
+                          <Link className="w-4 h-4 text-blue-600" />
+                          External Video URL
+                        </label>
+                        <input
+                          type="url"
+                          placeholder="https://youtube.com/watch?v=..."
+                          className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          value={editState.externalUrl}
+                          onChange={(e) =>
+                            setEditState({
+                              ...editState,
+                              externalUrl: e.target.value,
+                            })
+                          }
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter YouTube, Vimeo, or other video URL
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Schedule Section */}
+                <section className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-800 border-b pb-2">
+                    Schedule
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-1 text-sm">Start Date</label>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">
+                        Start Date
+                      </label>
                       <input
                         type="date"
-                        className="w-full border rounded px-3 py-2 text-sm"
+                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         value={editState.start_date}
                         onChange={(e) =>
                           setEditState({
@@ -422,10 +649,12 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
                     </div>
 
                     <div>
-                      <label className="block mb-1 text-sm">End Date</label>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">
+                        End Date
+                      </label>
                       <input
                         type="date"
-                        className="w-full border rounded px-3 py-2 text-sm"
+                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         value={editState.end_date}
                         onChange={(e) =>
                           setEditState({
@@ -438,6 +667,7 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
                   </div>
                 </section>
 
+                {/* Course Settings Section */}
                 <section className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800 border-b pb-2">
                     Course Settings
@@ -445,9 +675,11 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-1 text-sm">Status</label>
+                      <label className="block mb-1 text-sm font-medium text-gray-700">
+                        Status
+                      </label>
                       <select
-                        className="w-full border rounded px-3 py-2 text-sm bg-white"
+                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         value={editState.status}
                         onChange={(e) =>
                           setEditState({
@@ -464,6 +696,8 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
                     <div className="flex items-center gap-3 mt-6">
                       <input
                         type="checkbox"
+                        id="is_certified_edit"
+                        className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
                         checked={editState.is_certified}
                         onChange={(e) =>
                           setEditState({
@@ -472,91 +706,95 @@ export const CourseDetails = ({ courseId }: { courseId: string }) => {
                           })
                         }
                       />
-                      <label className="text-sm">Certified Course</label>
+                      <label htmlFor="is_certified_edit" className="text-sm font-medium text-gray-700 cursor-pointer">
+                        Certified Course
+                      </label>
                     </div>
                   </div>
                 </section>
 
+                {/* Prerequisites Section */}
                 <section className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800 border-b pb-2">
                     Prerequisites
                   </h3>
 
-                  <section className="space-y-4">
-                    <h3 className="text-sm font-semibold text-gray-800 border-b pb-2">
-                      Prerequisites
-                    </h3>
-
-                    <div className="border rounded-md p-3 space-y-2">
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-2">
-                        {editState.prerequisites.map((item, index) => (
-                          <span
-                            key={index}
-                            className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full"
+                  <div className="border rounded-lg p-3 bg-gray-50 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {editState.prerequisites?.map((item, index) => (
+                        <span
+                          key={index}
+                          className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full"
+                        >
+                          {item}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditState({
+                                ...editState,
+                                prerequisites: editState.prerequisites.filter(
+                                  (_, i) => i !== index
+                                ),
+                              })
+                            }
+                            className="hover:text-red-600 ml-1"
                           >
-                            {item}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEditState({
-                                  ...editState,
-                                  prerequisites: editState.prerequisites.filter(
-                                    (_, i) => i !== index,
-                                  ),
-                                })
-                              }
-                              className="hover:text-red-600"
-                            >
-                              ✕
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Input */}
-                      <input
-                        type="text"
-                        placeholder="Type and press Enter"
-                        className="w-full border-none outline-none text-sm"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === ",") {
-                            e.preventDefault();
-                            const value = e.currentTarget.value.trim();
-
-                            if (!value) return;
-                            if (editState.prerequisites.includes(value)) return;
-
-                            setEditState({
-                              ...editState,
-                              prerequisites: [
-                                ...editState.prerequisites,
-                                value,
-                              ],
-                            });
-
-                            e.currentTarget.value = "";
-                          }
-                        }}
-                      />
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
                     </div>
-                  </section>
+
+                    <input
+                      type="text"
+                      placeholder="Type and press Enter or comma to add"
+                      className="w-full border-none outline-none text-sm bg-transparent"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          const value = e.currentTarget.value.trim();
+
+                          if (!value) return;
+                          if (editState.prerequisites.includes(value)) return;
+
+                          setEditState({
+                            ...editState,
+                            prerequisites: [
+                              ...editState.prerequisites,
+                              value,
+                            ],
+                          });
+
+                          e.currentTarget.value = "";
+                        }
+                      }}
+                    />
+                  </div>
                 </section>
 
+                {/* Action Buttons */}
                 <div className="sticky bottom-0 bg-white border-t pt-4 flex justify-end gap-3">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setIsEditOpen(false)}
+                    className="px-6"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-blue-600 text-white"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30"
                     disabled={isUploadingImage}
                   >
-                    {isUploadingImage ? "Uploading..." : "Save Changes"}
+                    {isUploadingImage ? (
+                      <>
+                        <Upload className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
                   </Button>
                 </div>
               </form>

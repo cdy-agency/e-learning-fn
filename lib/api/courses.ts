@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Course, Module, Lesson, Resource, CourseModulesResponse } from '../types/course';
 import { API_URL } from '../axios';
+import { CourseFormState } from '@/types/course.types';
 
 // Show toast notifications for success or error
 export const showToast = (message: string, type: "success" | "error") => {
@@ -212,6 +213,9 @@ export async function createCourse(data: {
   is_certified: boolean;
   duration_weeks: string;
   thumbnail?: File | null;
+  video?: File | null;
+  videoThumbnail?: File | null;
+  externalUrl?: string;
 }) {
   const formData = new FormData();
 
@@ -240,8 +244,24 @@ export async function createCourse(data: {
   formData.append("is_certified", String(Boolean(data.is_certified)));
   formData.append("duration_weeks", String(Number(data.duration_weeks) || 0));
 
+  // Handle course thumbnail
   if (data.thumbnail instanceof File) {
     formData.append("thumbnail", data.thumbnail);
+  }
+
+  // Handle video file
+  if (data.video instanceof File) {
+    formData.append("video", data.video);
+  }
+
+  // Handle video thumbnail
+  if (data.videoThumbnail instanceof File) {
+    formData.append("videoThumbnail", data.videoThumbnail);
+  }
+
+  // Handle external URL
+  if (data.externalUrl && data.externalUrl.trim()) {
+    formData.append("externalUrl", data.externalUrl.trim());
   }
 
   const response = await axios.post(`${API_URL}/api/courses`, formData, {
@@ -252,6 +272,9 @@ export async function createCourse(data: {
 
   return response.data;
 }
+
+
+
 
 export async function createModule(course_id: string, title: string, description: string, duration_hours: number) {
   try {
