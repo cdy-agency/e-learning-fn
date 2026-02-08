@@ -5,6 +5,9 @@ export interface Course {
   description: string;
   price: number;
   thumbnail: string;
+  videoThumbnail: string;
+  externalUrl: string;
+  video: string
   category?: string;
   difficulty_level: 'beginner' | 'intermediate' | 'advanced';
   students: number

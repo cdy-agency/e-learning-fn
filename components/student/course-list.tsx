@@ -10,6 +10,14 @@ interface CourseListProps {
   onSelectCourse: (course: Course) => void;
 }
 
+interface EnrolledCoursePreview {
+  _id: string
+  course_id: Pick<
+    Course,
+    "_id" | "title" | "difficulty_level" | "duration_weeks"
+  >
+}
+
 export default function CourseList({ onSelectCourse }: CourseListProps) {
   const { user, loading } = useAuth();
   const { getEnrolledCourse, enrollment, loadingEducation } = useEducation();
@@ -41,7 +49,7 @@ export default function CourseList({ onSelectCourse }: CourseListProps) {
         {enrollment.length === 0 && (
           <div className="text-gray-400 text-sm">No enrolled courses found.</div>
         )}
-        {enrollment.map((e: { _id: string; course_id: Course }) => (
+        {enrollment.map((e: EnrolledCoursePreview) => (
           <div
             key={e._id}
             onClick={() => onSelectCourse(e.course_id as Course)}

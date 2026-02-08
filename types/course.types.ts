@@ -13,6 +13,7 @@ export interface CourseFormState {
   end_date: string;
   is_certified: boolean;
   duration_weeks: string;
+  externalUrl: string;
 }
 
 export interface ICourse {
@@ -23,6 +24,9 @@ export interface ICourse {
   difficulty_level: DifficultyLevel;
   status: CourseStatus;
   thumbnail: string;
+  videoThumbnail: string;
+  externalUrl: string;
+  video: string;
   prerequisites: string[]; 
   start_date: string;
   end_date: string;

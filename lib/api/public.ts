@@ -40,6 +40,8 @@ export interface Course {
   is_certified: boolean;
   duration_weeks?: number;
   totalStudent: number;
+  videoThumbnail: string;
+  video: string;
   instructor_id: {
     _id: string;
     profession_name?: string;

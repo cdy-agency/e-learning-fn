@@ -60,8 +60,18 @@ export const users: User[] = [
 ];
 
 export const courses: Course[] = [
-  { _id: "c1", instructor_id: "u1", title: "Writing 101", description: "Basics", price: 0, thumbnail: "", difficulty_level: "beginner", students: 2, prerequisites: [], start_date: new Date(), end_date: new Date(), is_certified: false, duration_weeks: 6 },
-  { _id: "c2", instructor_id: "u1", title: "Advanced Writing", description: "Advanced", price: 0, thumbnail: "", difficulty_level: "advanced", students: 0, prerequisites: [], start_date: new Date(), end_date: new Date(), is_certified: true, duration_weeks: 8 },
+  {
+    _id: "c1", instructor_id: "u1", title: "Writing 101", description: "Basics", price: 0, thumbnail: "", difficulty_level: "beginner", students: 2, prerequisites: [], start_date: new Date(), end_date: new Date(), is_certified: false, duration_weeks: 6,
+    videoThumbnail: "",
+    externalUrl: "",
+    video: ""
+  },
+  {
+    _id: "c2", instructor_id: "u1", title: "Advanced Writing", description: "Advanced", price: 0, thumbnail: "", difficulty_level: "advanced", students: 0, prerequisites: [], start_date: new Date(), end_date: new Date(), is_certified: true, duration_weeks: 8,
+    videoThumbnail: "",
+    externalUrl: "",
+    video: ""
+  },
 ];
 
 export const enrollments: CourseProgress[] = [
