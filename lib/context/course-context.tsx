@@ -292,6 +292,13 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       payload: { moduleId, lessons },
     });
 
+    // Refetch modules so ModuleList shows the new lesson (it reads from state.modules)
+    const module = state.modules.find((m) => m._id === moduleId);
+    if (module?.course_id) {
+      const modules = await courseApi.fetchModulesByCourseId(module.course_id);
+      dispatch({ type: "SET_MODULES", payload: modules });
+    }
+
     toast({
       title: "Success",
       description: "Lesson added",

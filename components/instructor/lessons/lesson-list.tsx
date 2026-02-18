@@ -1,6 +1,7 @@
   "use client";
 
   import { useState } from "react";
+  import Link from "next/link";
   import { Button } from "@/components/ui/button";
   import {
     Card,
@@ -17,7 +18,7 @@
     DialogTitle,
     DialogTrigger,
   } from "@/components/ui/dialog";
-  import { Plus, Video, FileText, Music } from 'lucide-react';
+  import { Plus, Video, FileText, Music, Eye } from 'lucide-react';
   import { ResourceList } from "../resources/resource-list";
   import { AddResourceForm } from "../resources/add-resources";
 
@@ -30,6 +31,7 @@
   interface Lesson {
     _id: string;
     title: string;
+    content?: string;
     content_type: keyof typeof contentTypeIcons;
     duration_minutes: number;
   }
@@ -37,9 +39,11 @@
   export function LessonList({
     lessons,
     moduleId,
+    courseId,
   }: {
     lessons: Lesson[];
     moduleId: string;
+    courseId: string;
   }) {
     const [openDialogs, setOpenDialogs] = useState<{ [key: string]: boolean }>({});
 
@@ -49,7 +53,6 @@
 
     const handleSuccess = (lessonId: string) => {
       handleOpenChange(lessonId, false);
-      // You might want to refresh the ResourceList here
     };
 
     return (
@@ -66,29 +69,37 @@
                     <Icon className="h-4 w-4" />
                     <CardTitle className="text-base">{lesson.title}</CardTitle>
                   </div>
-                  <Dialog
-                    open={openDialogs[lesson._id]}
-                    onOpenChange={(isOpen) => handleOpenChange(lesson._id, isOpen)}
-                  >
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="bg-blue-700 text-white hover:bg-blue-400">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Resource
+                  <div className="flex items-center gap-2">
+                    <Link href={`/instructor/courses/${courseId}/modules/${moduleId}/lessons/${lesson._id}`}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View content
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add Resource</DialogTitle>
-                        <DialogDescription>
-                          Add a new resource to the lesson &quot;{lesson.title}&quot;.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <AddResourceForm
-                        lessonId={lesson._id}
-                        onSuccess={() => handleSuccess(lesson._id)}
-                      />
-                    </DialogContent>
-                  </Dialog>
+                    </Link>
+                    <Dialog
+                      open={openDialogs[lesson._id]}
+                      onOpenChange={(isOpen) => handleOpenChange(lesson._id, isOpen)}
+                    >
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="bg-blue-700 text-white hover:bg-blue-400">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Resource
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Resource</DialogTitle>
+                          <DialogDescription>
+                            Add a new resource to the lesson &quot;{lesson.title}&quot;.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <AddResourceForm
+                          lessonId={lesson._id}
+                          onSuccess={() => handleSuccess(lesson._id)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>

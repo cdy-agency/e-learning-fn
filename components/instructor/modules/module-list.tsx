@@ -95,7 +95,7 @@ export function ModuleList({
             {/* Display lessons only if the module is active */}
             {activeModule === module._id && (
               <div className="mt-4">
-                <LessonList lessons={module.lessons} moduleId={module._id} />
+                <LessonList lessons={module.lessons} moduleId={module._id} courseId={courseId} />
               </div>
             )}
           </AccordionContent>

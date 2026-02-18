@@ -185,6 +185,31 @@ export async function fetchLessonsByModuleId(moduleId: string): Promise<Lesson[]
   }
 }
 
+export async function fetchLessonById(lessonId: string): Promise<Lesson> {
+  const response = await axios.get(`${API_URL}/api/courses/lessons/${lessonId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
+  return response.data;
+}
+
+export async function updateLesson(
+  lessonId: string,
+  data: { title?: string; content?: string; duration_minutes?: number }
+): Promise<Lesson> {
+  const response = await axios.put(
+    `${API_URL}/api/courses/lessons/${lessonId}`,
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  showToast("Lesson updated", "success");
+  return response.data;
+}
+
 export async function fetchResourcesByLessonId(lessonId: string): Promise<Resource[]> {
   try {
     const response = await axios.get(`${API_URL}/api/resources/${lessonId}`,{
