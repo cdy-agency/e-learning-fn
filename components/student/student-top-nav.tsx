@@ -77,7 +77,6 @@ export default function StudentTopNav() {
 
         {/* LEFT SIDE */}
         <div className="flex items-center gap-1 sm:gap-2">
-          <SidebarTrigger className="h-8 w-8 sm:h-9 sm:w-9" />
           <span className="hidden text-sm font-medium text-gray-800 sm:inline lg:text-base">
             {title}
           </span>

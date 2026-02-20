@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } f
 import { toast } from 'react-toastify';
 
 // Cache configuration
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_DURATION = 1 * 60 * 1000; // 5 minutes in milliseconds
 const cache = new Map<string, { data: any ; timestamp: number }>();
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL! 

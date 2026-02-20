@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { showToast } from "@/lib/api/courses";
-import { submitPaymentAPI } from "@/lib/api/student/payment";
+import { submitPaymentAPI } from "@/lib/api/student/payment.api";
 import { getStudentEnrolledCourses } from "@/lib/api/student";
 import {
   paymentSchema,

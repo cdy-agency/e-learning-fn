@@ -274,8 +274,6 @@ export async function createCourse(data: {
 }
 
 
-
-
 export async function createModule(course_id: string, title: string, description: string, duration_hours: number) {
   try {
     const response = await axios.post(`${API_URL}/api/courses/module`, {

@@ -1,63 +1,68 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { X, BookOpen, Calendar, Users, Search, Plus } from "lucide-react"
-import Link from "next/link"
-import { fetchEnrolledCourses } from "@/lib/api/courses"
-import { useAuth } from "@/lib/hooks/use-auth"
-
-interface Course {
-  _id: string
-  title: string
-  description: string
-  price: number
-  difficulty_level: string
-  duration_weeks: number
-  thumbnail?: string
-  instructor_id?: string
-}
-
-interface Enrollment {
-  _id: string
-  course_id: Course
-  user_id: string
-  enrolled_at: string
-  status: string
-}
+import { useState, useEffect, useMemo } from "react";
+import {
+  BookOpen,
+  Clock,
+  Star,
+} from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/lib/hooks/use-auth";
+import Image from "next/image";
+import { useStudentDashboard } from "@/lib/hooks/student";
+import { DashboardEnrollment } from "@/types/student/dashboard";
+import { Card, CardContent } from "@/components/ui/card";
+import { Course } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 
 export default function CoursesPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([])
-  const [loading, setLoading] = useState(true)
-  const { user, isAuthenticated } = useAuth()
-  
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      loadEnrolledCourses()
-    }
-  }, [isAuthenticated, user])
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [hoveredCourse, setHoveredCourse] = useState<Course | null>(null);
+  const { user, isAuthenticated } = useAuth();
+  const { data: response, isLoading, error } = useStudentDashboard();
 
-  const loadEnrolledCourses = async () => {
-    try {
-      setLoading(true)
-      const enrolledCourses = await fetchEnrolledCourses()
-      setEnrollments(enrolledCourses)
-    } catch (error) {
-      console.error("Failed to load enrolled courses:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-  
+  const dashboardData = response?.data;
+
+  const enrollments = useMemo<DashboardEnrollment[]>(
+    () => dashboardData?.enrollments ?? [],
+    [dashboardData],
+  );
+
   // Extract courses from enrollments for filtering
-  const courses = enrollments.map(enrollment => enrollment.course_id)
-  
-  const filteredCourses = courses.filter(course =>
-    course?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course?.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const courses = enrollments.map((enrollment) => enrollment.course_id);
 
-  // Show loading state while checking authentication
+  const filteredCourses = courses.filter(
+    (course) =>
+      course?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course?.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const getDifficultyColor = (level: string) => {
+    switch (level?.toLowerCase()) {
+      case "beginner":
+        return "text-green-700";
+      case "intermediate":
+        return "text-yellow-700";
+      case "advanced":
+        return "text-red-700";
+      default:
+        return "text-gray-700";
+    }
+  };
+
+  const getModuleCount = (course: Course) => {
+    return 2;
+  };
+
+  const handleCourseClick = (courseId: string | undefined) => {
+    if (courseId) {
+      router.push(`/student/courses/${courseId}`);
+    }
+  };
+
+  // Show isLoading state while checking authentication
   if (!isAuthenticated || !user) {
     return (
       <div className="flex flex-1 flex-col bg-gray-50 min-h-screen">
@@ -67,10 +72,10 @@ export default function CoursesPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex flex-1 flex-col bg-gray-50 min-h-screen">
         <div className="max-w-4xl mx-auto w-full p-6">
@@ -79,7 +84,10 @@ export default function CoursesPage() {
             <div className="h-4 bg-gray-200 rounded w-1/2"></div>
             <div className="grid gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div
+                  key={i}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                >
                   <div className="h-6 bg-gray-200 rounded mb-2"></div>
                   <div className="h-4 bg-gray-200 rounded mb-4"></div>
                   <div className="h-4 bg-gray-200 rounded"></div>
@@ -89,155 +97,197 @@ export default function CoursesPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-gray-50 min-h-screen">
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-4 sm:px-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <BookOpen className="h-5 w-5 text-blue-600" />
-          </div>
-          <h1 className="text-lg sm:text-xl font-semibold text-gray-900">My Courses</h1>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors duration-200">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </button>
-        </div>
-      </header>
-
-      <main className="flex flex-1 flex-col">
-        <div className="max-w-6xl mx-auto w-full p-4 sm:p-6">
-          {/* Header Section */}
-          <div className="mb-6 sm:mb-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Your Learning Journey</h2>
-              <p className="text-gray-600 mb-4">
-                Access all your enrolled courses and continue your learning progress.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link 
-                  href="/student/courses/catalog" 
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Browse All Courses
-                </Link>
-                <Link 
-                  href="/student/courses/catalog" 
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                >
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Course Catalog
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Search and Course List */}
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 px-1 sm:px-0">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                Enrolled Courses ({filteredCourses.length})
-              </h3>
-              
-              {/* Search Bar */}
-              <div className="relative w-full sm:w-80">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search courses..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+    <section className="py-16 bg-gray-50">
+      <div className="container mx-auto px-4 max-w-6xl">
+        <div className="grid lg:grid-cols-4 gap-5">
+          {/* Main Content - Courses */}
+          <div className="lg:col-span-3">
+            {/* Course Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoading ? (
+                // isLoading skeletons
+                Array.from({ length: 6 }).map((_, index) => (
+                  <Card
+                    key={index}
+                    className="overflow-hidden border-0 shadow-sm"
                   >
-                    <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCourses.map((course) => (
-                <Link key={course._id} href={`/student/courses/${course._id}/home`} className="block group">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-5 hover:shadow-md hover:border-blue-200 transition-all duration-200 h-full">
-                    <div className="flex flex-col h-full">
-                      <h4 className="text-base sm:text-lg font-semibold text-blue-600 group-hover:text-blue-700 mb-2 line-clamp-2">
-                        {course.title}
-                      </h4>
-                      
-                      <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-600 mb-3">
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          <span>{course.difficulty_level}</span>
+                    <div className="h-48 bg-gray-200 animate-pulse" />
+                    <CardContent className="p-5 space-y-3">
+                      <div className="h-4 bg-gray-200 animate-pulse w-3/4" />
+                      <div className="h-3 bg-gray-200 animate-pulse w-full" />
+                      <div className="h-3 bg-gray-200 animate-pulse w-2/3" />
+                    </CardContent>
+                  </Card>
+                ))
+              ) : filteredCourses.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-gray-500">
+                  No courses found
+                </div>
+              ) : (
+                filteredCourses.map((course) => (
+                  <div
+                    key={course._id}
+                    className="relative group"
+                    onMouseEnter={() => setHoveredCourse(course)}
+                    onMouseLeave={() => setHoveredCourse(null)}
+                  >
+                    {/* Main Card */}
+                    <Link href={`/course/${course._id}`}>
+                      <Card className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow h-full">
+                        {/* Image */}
+                        <div className="relative h-48 bg-gray-100">
+                          {course.thumbnail ? (
+                            <Image
+                              src={course.thumbnail}
+                              alt={course.title}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-500" />
+                          )}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{course.duration_weeks} weeks</span>
+
+                        <CardContent className="p-5">
+                          {/* Badges */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <Badge
+                              variant="outline"
+                              className="text-xs font-medium uppercase rounded-none border-none bg-transparent hover:bg-transparent truncate"
+                            >
+                              {course.category?.name || "General"}
+                            </Badge>
+
+                            <Badge
+                              className={`text-xs font-medium uppercase bg-white hover:bg-transparent ${getDifficultyColor(course.difficulty_level)}`}
+                            >
+                              {course.difficulty_level}
+                            </Badge>
+                          </div>
+
+                          {/* Title */}
+                          <h3 className="font-semibold text-gray-900 text-base mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors truncate">
+                            {course.title}
+                          </h3>
+
+                          {/* Meta Info */}
+                          <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+                            {/* Duration */}
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              <span>
+                                {course.duration_weeks
+                                  ? `${course.duration_weeks} weeks`
+                                  : "—"}
+                              </span>
+                            </div>
+
+                            {/* Price */}
+                            <span className="text-sm font-bold text-gray-900">
+                              {course.price === 0 ? (
+                                "Free"
+                              ) : (
+                                <span>
+                                  {course?.price?.toLocaleString()} RWF
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Hover Popup */}
+                    {hoveredCourse?._id === course._id && (
+                      <div className="absolute inset-0 bg-white z-50 scale-105 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 ease-out shadow-xl">
+                        <div className="p-4">
+                          {/* Category Badge */}
+                          <div className="mb-4">
+                            <Badge
+                              variant="outline"
+                              className="text-sm font-medium uppercase rounded-none border-none"
+                            >
+                              {course.category?.name || "General"}
+                            </Badge>
+                          </div>
+
+                          {/* Title */}
+                          <h2 className="text-base font-bold text-gray-900 mb-4 line-clamp-2">
+                            {course.title}
+                          </h2>
+
+                          {/* Description */}
+                          <p className="text-gray-600 text-sm mb-6 line-clamp-3">
+                            {course.description}
+                          </p>
+
+                          {/* Course Details Grid */}
+                          <div className="grid grid-cols-2 gap-4 mb-6">
+                            <div className="flex items-center gap-2 text-sm text-gray-700">
+                              <BookOpen className="h-4 w-4" />
+                              <span>{getModuleCount(course)} Modules</span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-gray-700">
+                              <Clock className="h-4 w-4" />
+                              <span>
+                                {course.duration_weeks
+                                  ? `${course.duration_weeks} weeks`
+                                  : "4 hours"}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-[12px] text-gray-700">
+                              <Star className="h-3 w-3" />
+                              <span className="uppercase">
+                                {course.difficulty_level}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-[12px] text-gray-700">
+                              <Clock className="h-3 w-3" />
+                              <span>
+                                {course.price === 0
+                                  ? "Free"
+                                  : `${course?.price?.toLocaleString()} RWF`}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          <div className="flex items-center justify-center gap-5">
+                            <Link
+                              href={`/course/${course._id}`}
+                              className="flex-1"
+                            >
+                              <button className="w-full border border-gray-200 text-foreground p-1 rounded">
+                                Preview
+                              </button>
+                            </Link>
+
+                            <button
+                              onClick={() => handleCourseClick(course?._id)}
+                              className="flex-1"
+                            >
+                              <p className="w-full bg-primary hover:bg-cyan-600 text-white p-1 rounded">
+                                Open
+                              </p>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      
-                      <div className="mt-auto flex items-center justify-between">
-                        <span className="text-xs sm:text-sm text-gray-500">Click to access course content</span>
-                        <div className="flex items-center text-blue-600 text-xs sm:text-sm font-medium group-hover:text-blue-700">
-                          Continue Learning
-                          <svg className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Empty State (if no courses) */}
-          {courses.length === 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="h-8 w-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No courses yet</h3>
-              <p className="text-gray-600 mb-4">Start your learning journey by exploring available courses.</p>
-              <Link 
-                href="/student/courses/catalog" 
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
-              >
-                Browse Courses
-              </Link>
-            </div>
-          )}
-
-          {/* Footer Info */}
-          <div className="mt-8 bg-blue-50 rounded-lg border border-blue-200 p-4">
-            <div className="flex items-start gap-3">
-              <div className="p-1 bg-blue-100 rounded-lg mt-0.5">
-                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-blue-900 mb-1">Customize Your Course List</p>
-                <p className="text-sm text-blue-700">
-                  Visit the Course Catalog to discover new courses and expand your learning journey.
-                </p>
-              </div>
+                ))
+              )}
             </div>
           </div>
         </div>
-      </main>
-    </div>
-  )
+      </div>
+    </section>
+  );
 }

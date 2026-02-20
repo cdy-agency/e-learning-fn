@@ -43,8 +43,8 @@ export interface IEnrollment {
   };
   totalLessons: number;
   completedLessons: number;
-  lastAccessed: Date;
-  enrolled_at: Date;
+  lastAccessed: string;
+  enrolled_at: string;
   status: string;
   completion_date?: Date;
   progress_percentage: number;

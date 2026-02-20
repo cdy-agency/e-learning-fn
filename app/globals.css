@@ -7,10 +7,23 @@
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
   /* Brand colors */
-  --brand-navy: #2C3E50;
-  --brand-blue: #3498DB;
-  --brand-light: #ECF0F1;
+  --foreground: oklch(0.145 0 0);
+  --primary: oklch(0.628 0.164 233.75); 
+  --brand-light: #e2f2f6;
   --brand-white: #FFFFFF;
+  --primary-foreground: oklch(1 0 0); /* #FFFFFF */
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --accent-hover: oklch(0.95 0.02 240);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.628 0.164 233.75);
 }
 
 @media (prefers-color-scheme: dark) {

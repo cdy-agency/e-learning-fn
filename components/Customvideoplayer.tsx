@@ -12,18 +12,37 @@ import {
   SkipForward,
 } from "lucide-react"
 
-interface CustomVideoPlayerProps {
+interface EnhancedVideoPlayerProps {
   videoUrl: string
   posterUrl?: string
   className?: string
 }
 
-export default function CustomVideoPlayer({
+// Helper function to detect and extract YouTube video ID
+const getYouTubeVideoId = (url: string): string | null => {
+  if (!url) return null
+  
+  // Handle different YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /^([a-zA-Z0-9_-]{11})$/ // Direct video ID
+  ]
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match) return match[1]
+  }
+  
+  return null
+}
+
+export default function EnhancedVideoPlayer({
   videoUrl,
   posterUrl,
   className = "",
-}: CustomVideoPlayerProps) {
+}: EnhancedVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const progressBarRef = useRef<HTMLDivElement>(null)
 
@@ -35,10 +54,26 @@ export default function CustomVideoPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showControls, setShowControls] = useState(true)
   const [isHovering, setIsHovering] = useState(false)
+  const [isYouTube, setIsYouTube] = useState(false)
+  const [youtubeId, setYoutubeId] = useState<string | null>(null)
 
-  // ✅ Hooks ALWAYS run
+  // Detect if URL is YouTube
   useEffect(() => {
     if (!videoUrl) return
+    
+    const ytId = getYouTubeVideoId(videoUrl)
+    if (ytId) {
+      setIsYouTube(true)
+      setYoutubeId(ytId)
+    } else {
+      setIsYouTube(false)
+      setYoutubeId(null)
+    }
+  }, [videoUrl])
+
+  // Handle regular video events
+  useEffect(() => {
+    if (!videoUrl || isYouTube) return
 
     const video = videoRef.current
     if (!video) return
@@ -56,24 +91,46 @@ export default function CustomVideoPlayer({
       video.removeEventListener("timeupdate", handleTimeUpdate)
       video.removeEventListener("ended", handleEnded)
     }
-  }, [videoUrl])
+  }, [videoUrl, isYouTube])
 
+  // Auto-hide controls
   useEffect(() => {
     let timeout: NodeJS.Timeout
-    if (isPlaying && !isHovering) {
+    if (isPlaying && !isHovering && !isYouTube) {
       timeout = setTimeout(() => setShowControls(false), 3000)
     } else {
       setShowControls(true)
     }
     return () => clearTimeout(timeout)
-  }, [isPlaying, isHovering])
+  }, [isPlaying, isHovering, isYouTube])
 
-  // ✅ Early return AFTER hooks
   if (!videoUrl || videoUrl.trim() === "") {
     return null
   }
-  
 
+  // For YouTube videos, use iframe embed
+  if (isYouTube && youtubeId) {
+    return (
+      <div
+        ref={containerRef}
+        className={`relative bg-black rounded-xl overflow-hidden ${className}`}
+      >
+        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+          <iframe
+            ref={iframeRef}
+            className="absolute top-0 left-0 w-full h-full"
+            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&controls=1&rel=0&modestbranding=1`}
+            title="YouTube video player"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // Regular video player with custom controls
   const togglePlay = () => {
     const video = videoRef.current
     if (!video) return
@@ -156,7 +213,7 @@ export default function CustomVideoPlayer({
       <video
         ref={videoRef}
         className="w-full h-full object-contain"
-        src={videoUrl || undefined}
+        src={videoUrl}
         poster={posterUrl}
         onClick={togglePlay}
       />

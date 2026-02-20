@@ -4,16 +4,17 @@ import { Megaphone, Calendar } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import CourseAnnouncements from "@/components/student/course-anouncement"
-
-export default function CourseAnnouncementsPage({ params }: { params: { courseId: string } }) {
-  const { courseId } = params
+import { useParams } from "next/navigation"
+export default function CourseAnnouncementsPage() {
+  const params = useParams()
+  const courseId = params.courseId as string
 
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-white px-4 md:px-6">
         <h1 className="text-sm font-semibold text-gray-900">
           <Link href={`/student/courses/${courseId}/home`} className="text-blue-600 hover:underline">
-            Communicating_for_Impact
+            Course
           </Link>{" "}
           <span className="text-gray-400">›</span> Announcements
         </h1>
