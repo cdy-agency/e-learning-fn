@@ -15,9 +15,6 @@ export default function CoursePageContent({
 }) {
   const { courseId, pageId } = use(params);
   const [page, setPage] = useState<any | null>(null)
-  
-  console.log("CoursePageContent Params:", courseId)
-  console.log("PageContent Params:", pageId)
 
   useEffect(() => {
     const load = async () => {

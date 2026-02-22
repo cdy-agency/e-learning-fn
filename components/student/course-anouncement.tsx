@@ -1,8 +1,12 @@
+
+"use client";
+
 import React, { useState, useMemo } from "react";
+import { Paperclip, ChevronRight, X, Bell } from "lucide-react";
 import { useCourseAnnouncements } from "@/lib/hooks/announcements/useCourseAnnouncements";
 
-// Define types
-type AnnouncementType = 'general' | 'assignment' | 'grade' | 'reminder' | 'urgent';
+
+type AnnouncementType = "general" | "assignment" | "grade" | "reminder" | "urgent";
 
 interface Announcement {
   id: string;
@@ -14,295 +18,246 @@ interface Announcement {
   isRead: boolean;
   isPinned: boolean;
   hasAttachment: boolean;
+}
+const TYPE_CONFIG: Record<AnnouncementType, { label: string; className: string }> = {
+  urgent:     { label: "Urgent",     className: "text-red-600 bg-red-50 border-red-200"          },
+  assignment: { label: "Assignment", className: "text-blue-600 bg-blue-50 border-blue-200"       },
+  grade:      { label: "Grade",      className: "text-green-600 bg-green-50 border-green-200"    },
+  reminder:   { label: "Reminder",   className: "text-yellow-600 bg-yellow-50 border-yellow-200" },
+  general:    { label: "General",    className: "text-gray-600 bg-gray-50 border-gray-200"       },
 };
 
-// Mock announcements data
-const MOCK_ANNOUNCEMENTS: Announcement[] = [
-  {
-    id: "1",
-    title: "Welcome to Communicating for Impact - Spring 2025",
-    content: "Welcome to our course! Please review the syllabus and complete your profile setup by Friday. We're excited to have you in this semester.",
-    type: "general",
-    date: "2025-07-20",
-    author: "Prof. Sarah Johnson",
-    isRead: false,
-    isPinned: true,
-    hasAttachment: true
-  },
-  {
-    id: "2",
-    title: "Assignment 1: Academic Writing Essay Due Date Extended",
-    content: "Due to technical issues with the submission portal, the deadline for Assignment 1 has been extended to July 28th, 11:59 PM. Please ensure you submit your work before the new deadline.",
-    type: "assignment",
-    date: "2025-07-22",
-    author: "Prof. Sarah Johnson",
-    isRead: false,
-    isPinned: false,
-    hasAttachment: false
-  },
-  {
-    id: "3",
-    title: "Quiz 1 Grades Released",
-    content: "Grades for Quiz 1 are now available in your gradebook. Overall class performance was excellent with an average score of 87%. Individual feedback has been provided.",
-    type: "grade",
-    date: "2025-07-21",
-    author: "Teaching Assistant",
-    isRead: true,
-    isPinned: false,
-    hasAttachment: false
-  },
-  {
-    id: "4",
-    title: "Reminder: Office Hours This Week",
-    content: "Don't forget about office hours on Wednesday 2-4 PM and Friday 10-12 PM. I'm available to help with any questions about the upcoming argumentative essay assignment.",
-    type: "reminder",
-    date: "2025-07-19",
-    author: "Prof. Sarah Johnson",
-    isRead: true,
-    isPinned: false,
-    hasAttachment: false
-  },
-  {
-    id: "5",
-    title: "URGENT: Class Cancelled Thursday Due to Weather",
-    content: "Due to severe weather conditions, Thursday's class is cancelled. Please review Chapter 3 materials online and we'll discuss them in our next session.",
-    type: "urgent",
-    date: "2025-07-18",
-    author: "Prof. Sarah Johnson",
-    isRead: false,
-    isPinned: true,
-    hasAttachment: false
-  }
-];
+function getConfig(type: string) {
+  return TYPE_CONFIG[type as AnnouncementType] ?? TYPE_CONFIG.general;
+}
 
-const getTypeColor = (type: AnnouncementType) => {
-  switch (type) {
-    case 'urgent': return 'text-red-600 bg-red-50 border-red-200';
-    case 'assignment': return 'text-blue-600 bg-blue-50 border-blue-200';
-    case 'grade': return 'text-green-600 bg-green-50 border-green-200';
-    case 'reminder': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    default: return 'text-gray-600 bg-gray-50 border-gray-200';
-  }
-};
+function stripHtml(html: string) {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
 
-const getTypeLabel = (type: AnnouncementType) => {
-  switch (type) {
-    case 'urgent': return 'Urgent';
-    case 'assignment': return 'Assignment';
-    case 'grade': return 'Grade';
-    case 'reminder': return 'Reminder';
-    default: return 'General';
-  }
-};
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`bg-gray-100 animate-pulse rounded ${className}`} />;
+}
 
-export default function CourseAnnouncements({ courseId }: { courseId?: string }) {
-  const { data: announcementsData = [] } = useCourseAnnouncements(courseId);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'pinned'>('all');
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+// Component
+export default function CourseAnnouncements({ courseId }: { courseId: string }) {
+  const { data: raw = [], isLoading } = useCourseAnnouncements(courseId);
 
-  // Transform API data to component format
-  const announcements = useMemo(() => {
-    return (Array.isArray(announcementsData) ? announcementsData : []).map((a: any) => ({
-      id: a._id || a.id,
-      title: a.title,
-      content: a.content,
-      type: (a.type || 'general') as AnnouncementType,
-      date: a.created_at || a.date || new Date().toISOString(),
-      author: a.author?.name || 'Instructor',
-      isRead: readIds.has(a._id || a.id),
-      isPinned: !!a.is_pinned,
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filter,     setFilter]     = useState<"all" | "unread" | "pinned">("all");
+  const [readIds,    setReadIds]    = useState<Set<string>>(new Set());
+
+  // Normalise API shape → component shape
+  const announcements = useMemo<Announcement[]>(() => {
+    return raw.map((a: any) => ({
+      id:            a._id || a.id,
+      title:         a.title ?? "",
+      content:       stripHtml(a.content ?? ""),
+      type:          (a.type ?? "general") as AnnouncementType,
+      date:          a.created_at || a.publish_at || new Date().toISOString(),
+      author:        a.author?.name ?? "Instructor",
+      isRead:        readIds.has(a._id || a.id),
+      isPinned:      !!a.is_pinned,
       hasAttachment: Array.isArray(a.attachments) && a.attachments.length > 0,
     }));
-  }, [announcementsData, readIds]);
+  }, [raw, readIds]);
 
-  const markAsRead = (id: string) => {
-    setReadIds(prev => new Set(prev).add(id));
-  };
-
-  const filteredAnnouncements = announcements.filter(ann => {
-    if (filter === 'unread') return !ann.isRead;
-    if (filter === 'pinned') return ann.isPinned;
+  const filtered = announcements.filter((a) => {
+    if (filter === "unread") return !a.isRead;
+    if (filter === "pinned") return a.isPinned;
     return true;
   });
 
-  const unreadCount = announcements.filter(ann => !ann.isRead).length;
+  const unreadCount = announcements.filter((a) => !a.isRead).length;
+  const selected    = announcements.find((a) => a.id === selectedId) ?? null;
+
+  const markRead    = (id: string) => setReadIds((prev) => new Set(prev).add(id));
+  const markAllRead = ()           => setReadIds(new Set(announcements.map((a) => a.id)));
+
+  const handleSelect = (a: Announcement) => {
+    setSelectedId(a.id);
+    markRead(a.id);
+  };
+
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto p-6">
-        {/* Header */}
-        <div className="bg-white border border-gray-200 mb-1">
+
+        {/* ── Header ── */}
+        <div className="bg-white border border-gray-200 mb-4 rounded-lg overflow-hidden">
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
             <div className="flex justify-between items-center">
-              <h1 className="text-lg font-medium text-gray-900">Announcements</h1>
-              <div className="flex items-center space-x-4">
+              <h1 className="text-lg font-semibold text-gray-900">Announcements</h1>
+              <div className="flex items-center gap-4">
                 {unreadCount > 0 && (
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                  <span className="bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-semibold">
                     {unreadCount} unread
                   </span>
                 )}
-                <button 
-                  onClick={() => setReadIds(new Set(announcements.map(a => a.id)))}
-                  className="text-sm text-gray-600 hover:text-blue-600"
-                >
-                  Mark all as read
-                </button>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs text-gray-500 hover:text-blue-600 transition-colors"
+                  >
+                    Mark all as read
+                  </button>
+                )}
               </div>
             </div>
           </div>
-          
-          {/* Filter Tabs */}
-          <div className="px-6 py-2 bg-white border-b border-gray-200">
-            <div className="flex space-x-6">
-              {[
-                { key: 'all', label: 'All Announcements' },
-                { key: 'unread', label: 'Unread' },
-                { key: 'pinned', label: 'Pinned' }
-              ].map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => setFilter(tab.key as any)}
-                  className={`text-sm py-2 border-b-2 transition-colors ${
-                    filter === tab.key
-                      ? 'border-blue-500 text-blue-600 font-medium'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+
+          {/* Filter tabs */}
+          <div className="px-6 flex gap-6 border-b border-gray-200 bg-white">
+            {(["all", "unread", "pinned"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilter(tab)}
+                className={`text-sm py-3 border-b-2 capitalize transition-colors ${
+                  filter === tab
+                    ? "border-blue-500 text-blue-600 font-semibold"
+                    : "border-transparent text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                {tab === "all" ? "All Announcements" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Announcements List */}
-          <div className="lg:col-span-2 space-y-0">
-            {filteredAnnouncements.map((announcement) => (
-              <div
-                key={announcement.id}
-                className={`bg-white border-l border-r border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  !announcement.isRead ? 'bg-blue-50' : ''
-                } ${selectedAnnouncement?.id === announcement.id ? 'ring-2 ring-blue-500 ring-inset' : ''}`}
-                onClick={() => {
-                  setSelectedAnnouncement(announcement);
-                  markAsRead(announcement.id);
-                }}
-              >
-                <div className="px-6 py-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      {announcement.isPinned && (
-                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z"/>
-                          <path fillRule="evenodd" d="M3 8a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
-                        </svg>
-                      )}
-                      <span className={`text-xs px-2 py-1 rounded border font-medium ${getTypeColor(announcement.type)}`}>
-                        {getTypeLabel(announcement.type)}
-                      </span>
-                      {!announcement.isRead && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(announcement.date).toLocaleDateString()}
-                    </div>
+        {/* ── Content grid ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          {/* ── List */}
+          <div className="lg:col-span-2">
+            {isLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+                    <Skeleton className="w-24 h-4" />
+                    <Skeleton className="w-3/4 h-4" />
+                    <Skeleton className="w-full h-3" />
                   </div>
-                  
-                  <h3 className={`text-sm font-medium mb-1 ${!announcement.isRead ? 'text-gray-900' : 'text-gray-700'}`}>
-                    {announcement.title}
-                  </h3>
-                  
-                  <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                    {announcement.content}
-                  </p>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">By {announcement.author}</span>
-                    <div className="flex items-center space-x-2">
-                      {announcement.hasAttachment && (
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                        </svg>
-                      )}
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : filtered.length === 0 ? (
+              <div className="bg-white border border-gray-200 rounded-lg p-12 flex flex-col items-center gap-3 text-gray-400">
+                <Bell className="w-10 h-10 opacity-30" />
+                <p className="text-sm">No announcements match this filter</p>
+              </div>
+            ) : (
+              <div className="rounded-lg overflow-hidden border border-gray-200 divide-y divide-gray-100">
+                {filtered.map((a) => {
+                  const cfg      = getConfig(a.type);
+                  const isActive = selectedId === a.id;
+                  return (
+                    <div
+                      key={a.id}
+                      onClick={() => handleSelect(a)}
+                      className={`px-5 py-4 cursor-pointer transition-colors hover:bg-gray-50
+                        ${!a.isRead ? "bg-blue-50 hover:bg-blue-50/80" : "bg-white"}
+                        ${isActive  ? "ring-2 ring-inset ring-blue-400" : ""}
+                      `}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          {/* Badges row */}
+                          <div className="flex items-center gap-2 mb-1.5">
+                            {a.isPinned && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 uppercase">
+                                Pinned
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${cfg.className}`}>
+                              {cfg.label}
+                            </span>
+                            {!a.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />}
+                          </div>
+
+                          <h3 className={`text-sm font-semibold mb-1 truncate ${!a.isRead ? "text-gray-900" : "text-gray-700"}`}>
+                            {a.title}
+                          </h3>
+
+                          <p className="text-xs text-gray-500 line-clamp-1 mb-2">{a.content}</p>
+
+                          <div className="flex items-center justify-between text-[11px] text-gray-400">
+                            <span>By {a.author}</span>
+                            <span>
+                              {new Date(a.date).toLocaleDateString("en-US", {
+                                month: "short", day: "numeric", year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
+                          {a.hasAttachment && <Paperclip className="w-3.5 h-3.5 text-gray-300" />}
+                          <ChevronRight className="w-4 h-4 text-gray-300" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* Selected Announcement Detail */}
+          {/* ── Detail panel ── */}
           <div className="lg:col-span-1">
-            {selectedAnnouncement ? (
-              <div className="bg-white border border-gray-200 sticky top-6">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            {selected ? (
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden sticky top-6">
+                <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs px-2 py-1 rounded border font-medium ${getTypeColor(selectedAnnouncement.type)}`}>
-                      {getTypeLabel(selectedAnnouncement.type)}
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${getConfig(selected.type).className}`}>
+                      {getConfig(selected.type).label}
                     </span>
-                    <button 
-                      onClick={() => setSelectedAnnouncement(null)}
-                      className="text-gray-400 hover:text-gray-600"
+                    <button
+                      onClick={() => setSelectedId(null)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <h2 className="text-lg font-medium text-gray-900">{selectedAnnouncement.title}</h2>
+                  <h2 className="text-base font-semibold text-gray-900 leading-snug">{selected.title}</h2>
                 </div>
-                
-                <div className="px-6 py-4">
-                  <div className="text-sm text-gray-600 mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">From: {selectedAnnouncement.author}</span>
-                      {selectedAnnouncement.isPinned && (
-                        <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">Pinned</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Posted: {new Date(selectedAnnouncement.date).toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
-                    </div>
+
+                <div className="px-5 py-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700">From: {selected.author}</span>
+                    {selected.isPinned && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full uppercase">
+                        Pinned
+                      </span>
+                    )}
                   </div>
-                  
-                  <div className="text-sm text-gray-700 leading-relaxed">
-                    {selectedAnnouncement.content}
-                  </div>
-                  
-                  {selectedAnnouncement.hasAttachment && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                        </svg>
-                        <span>Course_Syllabus_2025.pdf</span>
-                      </div>
+                  <p className="text-xs text-gray-400 mb-4">
+                    {new Date(selected.date).toLocaleDateString("en-US", {
+                      weekday: "long", year: "numeric", month: "long", day: "numeric",
+                    })}
+                  </p>
+
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {selected.content}
+                  </p>
+
+                  {selected.hasAttachment && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <button className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 transition-colors">
+                        <Paperclip className="w-3.5 h-3.5" />
+                        View Attachment
+                      </button>
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="bg-white border border-gray-200 px-6 py-12 text-center">
-                <div className="text-gray-400 mb-4">
-                  <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10 0v10a2 2 0 01-2 2H9a2 2 0 01-2-2V8m10 0H7" />
-                  </svg>
-                </div>
-                <p className="text-sm text-gray-500">Select an announcement to view details</p>
+              <div className="bg-white border border-gray-200 rounded-lg p-10 flex flex-col items-center gap-3 text-gray-400 sticky top-6">
+                <Bell className="w-10 h-10 opacity-20" />
+                <p className="text-xs text-center">Select an announcement to read it</p>
               </div>
             )}
           </div>
+
         </div>
       </div>
     </div>

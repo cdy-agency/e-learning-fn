@@ -6,6 +6,7 @@ import { EducationProvider } from '@/context/educationContext';
 import { QueryProvider } from '@/lib/providers/query-provider';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { LandingDataProvider } from '@/lib/hooks/landing/use-landing-data';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -13,8 +14,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <CourseProvider>
           <EducationProvider>
+            <LandingDataProvider>
             {children}
             <ToastContainer />
+            </LandingDataProvider>
           </EducationProvider>
         </CourseProvider>
       </AuthProvider>

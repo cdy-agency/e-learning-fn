@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { GraduationCap, Menu } from "lucide-react"
-import { useAuth } from "@/lib/hooks/use-auth"
-import Image from "next/image"
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { GraduationCap, Menu } from "lucide-react";
+import { useAuth } from "@/lib/hooks/use-auth";
+import Image from "next/image";
 
 // shadcn dropdown
 import {
@@ -12,31 +12,36 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 export default function LandingHeader() {
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuth();
 
   // Role-based dashboard route
   const getDashboardRoute = () => {
     switch (user?.role) {
       case "student":
-        return "/student"
+        return "/student";
       case "instructor":
-        return "/instructor"
+        return "/instructor";
       case "institution":
-        return "/institution"
+        return "/institution";
       case "admin":
-        return "/admin"
+        return "/admin";
       default:
-        return "/dashboard"
+        return "/dashboard";
     }
-  }
+  };
+
+  const navItems = [
+    { href: "/", label: "HOME" },
+    { href: "/course", label: "COURSES" },
+    { href: "/contact", label: "CONTACT" },
+  ];
 
   return (
     <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-8 lg:px-16">
-        
+      <div className="container flex py-5 items-center justify-between px-4 md:px-8 lg:px-32">
         {/* Logo */}
         <div className="flex items-center space-x-3">
           <GraduationCap className="h-8 w-8 text-purple-600" />
@@ -44,15 +49,10 @@ export default function LandingHeader() {
         </div>
 
         {/* Navbar Links */}
-        <nav className="hidden lg:flex items-center space-x-6">
-          {[
-            { href: "#services", label: "Services" },
-            { href: "#categories", label: "Categories" },
-            { href: "#courses", label: "Courses" },
-            { href: "#about", label: "About" },
-          ].map((item) => (
+        <nav className="hidden lg:flex items-center space-x-8">
+          {navItems.map((item, index) => (
             <Link
-              key={item.href}
+              key={index}
               href={item.href}
               className="relative text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors group"
             >
@@ -91,9 +91,7 @@ export default function LandingHeader() {
                   <span className="text-sm font-semibold text-gray-800">
                     {user.name}
                   </span>
-                  <span className="text-xs text-gray-500">
-                    {user.email}
-                  </span>
+                  <span className="text-xs text-gray-500">{user.email}</span>
                 </div>
               </DropdownMenuTrigger>
 
@@ -104,10 +102,7 @@ export default function LandingHeader() {
                   </Link>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  className="text-red-600"
-                  onClick={logout}
-                >
+                <DropdownMenuItem className="text-red-600" onClick={logout}>
                   Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -142,10 +137,7 @@ export default function LandingHeader() {
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-red-600"
-                  onClick={logout}
-                >
+                <DropdownMenuItem className="text-red-600" onClick={logout}>
                   Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -162,5 +154,5 @@ export default function LandingHeader() {
         </div>
       </div>
     </header>
-  )
+  );
 }

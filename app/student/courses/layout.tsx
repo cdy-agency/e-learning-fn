@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useEffect, useMemo, useState } from "react";
 import { fetchCourseById } from "@/lib/api/courses";
+import Image from "next/image";
 
 export default function CoursesLayout({
   children,
@@ -51,7 +52,9 @@ export default function CoursesLayout({
         const title = course?.title || "Course";
         setCourseTitle(title);
         // Derive term if present elsewhere; fallback using mock data mapping by name
-        const match = coursesList.find((c) => title.toLowerCase().includes(String(c.name).toLowerCase()));
+        const match = coursesList.find((c) =>
+          title.toLowerCase().includes(String(c.name).toLowerCase()),
+        );
         setCourseTerm(match?.term || "");
       } catch {}
     };
@@ -69,7 +72,7 @@ export default function CoursesLayout({
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
           pathname.includes(`/student/courses/${courseId}/home`) &&
-            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <Home className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -80,9 +83,8 @@ export default function CoursesLayout({
         href={`/student/courses/${courseId}/announcements`}
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
-          pathname.includes(
-            `/student/courses/${courseId}/announcements`
-          ) && "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+          pathname.includes(`/student/courses/${courseId}/announcements`) &&
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <Megaphone className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -94,19 +96,19 @@ export default function CoursesLayout({
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
           pathname.includes(`/student/courses/${courseId}/modules`) &&
-            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <Folder className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
         <span className="truncate">Modules</span>
       </Link>
-      
+
       <Link
         href={`/student/courses/${courseId}/pages`}
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
           pathname.includes(`/student/courses/${courseId}/pages`) &&
-            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <FileText className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -117,9 +119,8 @@ export default function CoursesLayout({
         href={`/student/courses/${courseId}/assignments`}
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
-          pathname.includes(
-            `/student/courses/${courseId}/assignments`
-          ) && "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+          pathname.includes(`/student/courses/${courseId}/assignments`) &&
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <ClipboardList className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -131,7 +132,7 @@ export default function CoursesLayout({
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
           pathname.includes(`/student/courses/${courseId}/quizzes`) &&
-            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <ClipboardList className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -143,7 +144,7 @@ export default function CoursesLayout({
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
           pathname.includes(`/student/courses/${courseId}/exams`) &&
-            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <ClipboardList className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -155,7 +156,7 @@ export default function CoursesLayout({
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
           pathname.includes(`/student/courses/${courseId}/grades`) &&
-            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <GraduationCap className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -167,7 +168,7 @@ export default function CoursesLayout({
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
           pathname.includes(`/student/courses/${courseId}/files`) &&
-            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <File className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -179,7 +180,7 @@ export default function CoursesLayout({
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
           pathname.includes(`/student/courses/${courseId}/syllabus`) &&
-            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <Book className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -190,9 +191,8 @@ export default function CoursesLayout({
         href={`/student/courses/${courseId}/collaborations`}
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
-          pathname.includes(
-            `/student/courses/${courseId}/collaborations`
-          ) && "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+          pathname.includes(`/student/courses/${courseId}/collaborations`) &&
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <Users className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -204,7 +204,7 @@ export default function CoursesLayout({
         className={cn(
           "flex items-center gap-2 xl:gap-3 px-2 xl:px-3 py-2 xl:py-2.5 text-sm xl:text-base text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200 touch-manipulation",
           pathname.includes(`/student/courses/${courseId}/help`) &&
-            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium"
+            "bg-blue-50 text-blue-700 border-l-2 xl:border-l-4 border-blue-500 font-medium",
         )}
       >
         <HelpCircle className="h-4 w-4 xl:h-5 xl:w-5 flex-shrink-0" />
@@ -221,7 +221,10 @@ export default function CoursesLayout({
           {/* Desktop Course Sidebar */}
           <aside className="hidden lg:block w-64 xl:w-72 flex-shrink-0 border-r border-gray-200 bg-white">
             <div className="flex h-14 xl:h-16 items-center justify-between border-b border-gray-200 px-3 xl:px-4">
-              <h2 className="text-sm xl:text-base font-semibold text-gray-900 truncate" title={courseTitle}>
+              <h2
+                className="text-sm xl:text-base font-semibold text-gray-900 truncate"
+                title={courseTitle}
+              >
                 {courseTitle || "Course"}
               </h2>
               <button className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-100 transition-colors">
@@ -245,8 +248,8 @@ export default function CoursesLayout({
           <div className="lg:hidden fixed top-14 left-2 z-50">
             <Sheet>
               <SheetTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   className="h-8 px-2 bg-white/95 backdrop-blur border-gray-300 shadow-lg hover:shadow-xl transition-all duration-200"
                 >
@@ -256,13 +259,18 @@ export default function CoursesLayout({
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-80 max-w-[85vw]">
                 <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4">
-                  <h2 className="text-sm font-semibold text-gray-900 truncate" title={courseTitle}>
+                  <h2
+                    className="text-sm font-semibold text-gray-900 truncate"
+                    title={courseTitle}
+                  >
                     {courseTitle || "Course"}
                   </h2>
                 </div>
                 <div className="p-4">
                   {courseTerm && (
-                    <p className="text-sm font-bold text-gray-600 mb-4">{courseTerm}</p>
+                    <p className="text-sm font-bold text-gray-600 mb-4">
+                      {courseTerm}
+                    </p>
                   )}
                   {SidebarNav}
                 </div>
@@ -274,28 +282,10 @@ export default function CoursesLayout({
 
       {/* Main Content Area */}
       <main className="flex flex-1 flex-col bg-white">
-        {/* Global action bar for all /student/courses pages */}
-        <div className={cn(
-          "sticky top-0 z-10 border-b border-gray-200 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60",
-          isSpecificCoursePage ? "hidden lg:block" : "block"
-        )}>
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-3 sm:px-4 py-2 sm:py-3">
-            <div className="text-sm font-medium text-gray-700">
-              {isSpecificCoursePage ? "Course Workspace" : "My Courses"}
-            </div>
-            <Link
-              href="/student/courses/catalog"
-              className="inline-flex items-center rounded-md bg-blue-600 px-3 sm:px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-            >
-              Browse Courses
-            </Link>
-          </div>
-        </div>
         {/* Add padding for mobile course menu button */}
-        <div className={cn(
-          "flex-1",
-          isSpecificCoursePage ? "lg:pl-0 pl-12" : ""
-        )}>
+        <div
+          className={cn("flex-1", isSpecificCoursePage ? "lg:pl-0 pl-12" : "")}
+        >
           {children}
         </div>
       </main>

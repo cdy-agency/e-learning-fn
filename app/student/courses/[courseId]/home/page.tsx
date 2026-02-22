@@ -1,203 +1,399 @@
 "use client";
-import { Bell, BookOpen, FileText, X, PlayCircle } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { useEffect, useMemo, useState } from "react"
-import { fetchCourseById } from "@/lib/api/courses"
-import { getCourseProgress, getCourseAnnouncements, getStudentCalendar } from "@/lib/api/student"
 
-type Announcement = { id: string; title: string; content?: string; created_at?: string }
+import {
+  Bell,
+  BookOpen,
+  FileText,
+  X,
+  PlayCircle,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  isPast,
+  isWithinInterval,
+  addDays,
+  formatDistanceToNow,
+} from "date-fns";
+import {
+  fetchCourseById,
+  getCourseProgress,
+  getCourseAssignments,
+  getCourseAnnouncements,
+  CourseProgress,
+  CourseAssignment,
+  CourseAnnouncement,
+} from "@/lib/api/student/courses.api";
+import { useParams } from "next/navigation";
 
-export default function CourseHomePage({ params }: { params: { courseId: string } }) {
-  const { courseId } = params
-  const [courseTitle, setCourseTitle] = useState<string>("")
-  const [instructorName, setInstructorName] = useState<string>("")
-  const [progressPercent, setProgressPercent] = useState<number>(0)
-  const [completedLessons, setCompletedLessons] = useState<number>(0)
-  const [totalLessons, setTotalLessons] = useState<number>(0)
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
-  const [calendarItems, setCalendarItems] = useState<any[]>([])
+// Helpers
+function stripHtml(html: string) {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatDate(dateStr?: string) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function safeTimeAgo(dateStr?: string) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  return formatDistanceToNow(d, { addSuffix: true });
+}
+
+function getDueStatus(dueDate: string): {
+  label: string;
+  color: string;
+  border: string;
+} {
+  const due = new Date(dueDate);
+  const now = new Date();
+  if (isPast(due))
+    return {
+      label: "Overdue",
+      color: "text-red-600",
+      border: "border-l-red-400",
+    };
+  if (isWithinInterval(due, { start: now, end: addDays(now, 3) }))
+    return {
+      label: "Due soon",
+      color: "text-orange-500",
+      border: "border-l-orange-400",
+    };
+  return {
+    label: "Upcoming",
+    color: "text-cyan-600",
+    border: "border-l-cyan-400",
+  };
+}
+
+function filterActiveAnnouncements(items: CourseAnnouncement[]) {
+  return items.filter((item) => {
+    if (!item.expires_at) return true;
+    const expiry = new Date(item.expires_at);
+    return isNaN(expiry.getTime()) || !isPast(expiry);
+  });
+}
+
+function filterActiveAssignments(items: CourseAssignment[]) {
+  return items.filter((item) => {
+    if (!item.dueDate) return true;
+    const due = new Date(item.dueDate);
+    return isNaN(due.getTime()) || !isPast(due);
+  });
+}
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`bg-gray-100 animate-pulse rounded ${className}`} />;
+}
+
+export default function CourseHomePage() {
+  const params = useParams();
+  const courseId = params.courseId as string;
+
+  const [courseTitle, setCourseTitle] = useState("");
+  const [instructorName, setInstructorName] = useState("");
+  const [progress, setProgress] = useState<CourseProgress>({
+    progress_percentage: 0,
+    completedLessons: 0,
+    totalLessons: 0,
+  });
+  const [assignments, setAssignments] = useState<CourseAssignment[]>([]);
+  const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
-      try {
-        const [course, progress, anns, calendar] = await Promise.all([
+      setLoading(true);
+      const [courseRes, progressRes, assignmentsRes, announcementsRes] =
+        await Promise.allSettled([
           fetchCourseById(courseId),
-          getCourseProgress(courseId).catch(() => null),
-          getCourseAnnouncements(courseId).catch(() => []),
-          getStudentCalendar().catch(() => []),
-        ])
-        setCourseTitle(course?.title || "")
-        // Backend Course type exposes instructor_id; instructor name is not guaranteed in this response
-        setInstructorName("")
-        if (progress) {
-          setProgressPercent(progress.progress_percentage ?? 0)
-          setCompletedLessons(progress.completedLessons ?? 0)
-          setTotalLessons(progress.totalLessons ?? 0)
-        }
-        const normalizedAnns = (Array.isArray(anns) ? anns : []).map((a: any) => ({
-          id: a._id || a.id,
-          title: a.title,
-          content: a.content,
-          created_at: a.created_at || a.publish_at || a.createdAt,
-        }))
-        setAnnouncements(normalizedAnns)
-        const merged = Array.isArray(calendar) ? calendar : []
-        const filtered = merged
-          .filter((c: any) => {
-            const cid = c.courseId || c.course_id?._id || c.course_id || c.course?._id || c.course
-            return String(cid) === String(courseId)
-          })
-          .map((c: any) => ({
-            ...c,
-            due: c.dueDate || c.due_date || c.date,
-          }))
-        setCalendarItems(filtered)
-      } catch (e) {
-        // keep UI minimal if fails
-      }
-    }
-    load()
-  }, [courseId])
+          getCourseProgress(courseId),
+          getCourseAssignments(courseId),
+          getCourseAnnouncements(courseId),
+        ]);
+      if (cancelled) return;
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-gray-900 text-white'
-      case 'medium': return 'bg-gray-600 text-white'
-      case 'low': return 'bg-gray-400 text-white'
-      default: return 'bg-gray-200 text-gray-700'
-    }
-  }
+      if (courseRes.status === "fulfilled") {
+        const c = courseRes.value as any;
+        setCourseTitle(c?.title ?? "");
+        setInstructorName(
+          c?.instructor_id?.user_id?.name ||
+            c?.instructor_id?.profession_name ||
+            "",
+        );
+      }
+      if (progressRes.status === "fulfilled") setProgress(progressRes.value);
+      if (assignmentsRes.status === "fulfilled")
+        setAssignments(filterActiveAssignments(assignmentsRes.value));
+      if (announcementsRes.status === "fulfilled")
+        setAnnouncements(filterActiveAnnouncements(announcementsRes.value));
+      setLoading(false);
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId]);
+
+  // Next upcoming assignment for the highlight card
+  const nextAssignment = assignments[0] ?? null;
 
   return (
-    <div className="flex flex-1 flex-col bg-gray-50 min-h-screen">
-      <header className="flex h-14 lg:h-16 shrink-0 items-center gap-2 lg:gap-4 border-b bg-white px-3 lg:px-6 shadow-sm">
-        <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
-          <div className="p-1.5 lg:p-2 bg-blue-100 rounded-lg flex-shrink-0">
-            <BookOpen className="h-4 w-4 lg:h-5 lg:w-5 text-blue-600" />
-          </div>
-          <h1 className="text-sm lg:text-xl font-semibold text-gray-900 truncate">
-            {courseTitle}
-          </h1>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* ── Content ── */}
+      <div className="flex-1 p-6 max-w-7xl mx-auto w-full">
+        {/* Page title row */}
+        <div className="mb-6">
+          {loading ? (
+            <Skeleton className="w-64 h-7 mb-1" />
+          ) : (
+            <h2 className="text-2xl font-bold text-gray-900">{courseTitle}</h2>
+          )}
+          {instructorName && !loading && (
+            <p className="text-sm text-gray-400 mt-0.5">
+              Instructor: {instructorName}
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0">
-          <span className="text-xs lg:text-sm text-gray-600 hidden sm:inline">Progress: {progressPercent}%</span>
-          <button className="flex h-7 w-7 lg:h-8 lg:w-8 items-center justify-center rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors duration-200">
-            <X className="h-3 w-3 lg:h-4 lg:w-4" />
-          </button>
-        </div>
-      </header>
 
-      <main className="flex flex-1 flex-col">
-        <div className="max-w-7xl mx-auto w-full p-3 lg:p-6">
-          <div className="mb-6 lg:mb-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
-                <div className="flex-1">
-                  <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">Welcome back!</h2>
-                  <p className="text-sm lg:text-base text-gray-600 mb-3 lg:mb-4">
-                    You{'\''}re making great progress in {courseTitle}. Ready to continue?
+        {/* ── Progress banner ── */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 flex items-center gap-6">
+          {loading ? (
+            <div className="flex-1 space-y-2">
+              <Skeleton className="w-40 h-3" />
+              <Skeleton className="w-full h-2" />
+            </div>
+          ) : (
+            <>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-medium text-gray-500">
+                    Course Progress
+                  </span>
+                  <span className="text-xs font-bold text-cyan-600">
+                    {progress.progress_percentage}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                  <div
+                    className="h-1.5 bg-cyan-500 rounded-full transition-all duration-700"
+                    style={{ width: `${progress.progress_percentage}%` }}
+                  />
+                </div>
+                {progress.totalLessons > 0 && (
+                  <p className="text-[11px] text-gray-400 mt-1.5">
+                    {progress.completedLessons} of {progress.totalLessons}{" "}
+                    lessons completed
                   </p>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs lg:text-sm text-gray-600">
-                    {instructorName && <span>Instructor: {instructorName}</span>}
-                    {totalLessons > 0 && (
-                      <>
-                        {instructorName && <span className="hidden sm:inline">•</span>}
-                        <span>{completedLessons} of {totalLessons} lessons completed</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="w-full lg:w-80">
-                  <div className="mb-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-gray-600">Course Progress</span>
-                      <span className="text-lg font-bold text-blue-600">{progressPercent}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 lg:h-3">
-                      <div
-                        className="h-full bg-blue-600 rounded-full transition-all duration-1000"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                  <Link
-                    href="#"
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 w-full justify-center"
+                )}
+              </div>
+
+              <Link
+                href={`/student/courses/${courseId}/learn`}
+                className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-semibold rounded-lg transition-colors flex-shrink-0"
+              >
+                <PlayCircle className="w-3.5 h-3.5" />
+                Continue Learning
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* ── Two column layout ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT — Deadlines */}
+          <div className="lg:col-span-2 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">
+                Deadlines of Assignements this week
+                {!loading && assignments.length > 0 && (
+                  <span className="ml-2 text-xs font-normal text-gray-400">
+                    {assignments.length} open
+                  </span>
+                )}
+              </h3>
+              {!loading && assignments.length > 2 && (
+                <button className="text-xs text-cyan-600 hover:underline">
+                  See all
+                </button>
+              )}
+            </div>
+
+            {loading ? (
+              [1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-16" />)
+            ) : assignments.length === 0 ? (
+              <div className="bg-white border border-gray-200 rounded-xl p-8 flex flex-col items-center gap-2 text-gray-400">
+                <CheckCircle2 className="w-8 h-8 opacity-30" />
+                <p className="text-sm">
+                  No upcoming deadlines — you&apos;re all caught up!
+                </p>
+              </div>
+            ) : (
+              assignments.map((assignment) => {
+                const status = getDueStatus(assignment.dueDate);
+                return (
+                  <div
+                    key={assignment._id}
+                    className={`bg-white border border-gray-200 border-l-4 ${status.border} rounded-xl p-4 flex items-start justify-between gap-4 hover:bg-gray-50 transition-colors cursor-pointer`}
                   >
-                    <PlayCircle className="h-4 w-4 mr-2" />
-                    Continue Learning
-                  </Link>
-                </div>
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <FileText className="w-4 h-4 text-gray-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-semibold text-gray-800 truncate">
+                          {assignment.title}
+                        </h4>
+                        {assignment.module_id?.title && (
+                          <p className="text-xs text-gray-400 truncate">
+                            {assignment.module_id.title}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                          <span
+                            className={`text-xs font-medium ${status.color}`}
+                          >
+                            Due: {formatDate(assignment.dueDate)}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {assignment.points} pts
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />
+                  </div>
+                );
+              })
+            )}
+
+            {/* Announcements */}
+            <div className="pt-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">
+                  Announcements
+                </h3>
+                {!loading && announcements.length > 0 && (
+                  <span className="text-[11px] text-gray-400">
+                    {announcements.length} total
+                  </span>
+                )}
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+                {loading ? (
+                  <div className="p-4 space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="w-full h-10" />
+                    ))}
+                  </div>
+                ) : announcements.length === 0 ? (
+                  <div className="p-6 flex flex-col items-center gap-2 text-gray-400">
+                    <Bell className="w-6 h-6 opacity-30" />
+                    <p className="text-xs">No announcements yet</p>
+                  </div>
+                ) : (
+                  announcements.slice(0, 5).map((a) => (
+                    <div
+                      key={a._id}
+                      className="flex items-start gap-3 p-3.5 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <div className="w-7 h-7 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Bell className="w-3.5 h-3.5 text-gray-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-gray-800 truncate">
+                            {a.title}
+                          </p>
+                          {a.is_pinned && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full uppercase flex-shrink-0">
+                              Pinned
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                          {stripHtml(a.content)}
+                        </p>
+                        <p className="text-[10px] text-gray-300 mt-0.5">
+                          {safeTimeAgo(a.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
-                <div className="flex items-center justify-between mb-4 lg:mb-6">
-                  <h3 className="text-base lg:text-lg font-semibold text-gray-900">Upcoming Deadlines</h3>
-                </div>
-                <div className="space-y-4">
-                  {calendarItems.map((deadline: any) => (
-                    <div
-                      key={deadline.id || deadline._id}
-                      className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="p-2 bg-gray-100 rounded-lg mt-1">
-                            {deadline.type === 'quiz' ? (
-                              <PlayCircle className="h-4 w-4 text-gray-600" />
-                            ) : (
-                              <FileText className="h-4 w-4 text-gray-600" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 mb-1">{deadline.title}</h4>
-                            <div className="flex items-center gap-3 text-sm text-gray-600 mb-2">
-                              <span>{deadline.type === 'announcement' ? 'Date' : 'Due'}: {new Date(deadline.due || deadline.dueDate || deadline.due_date || deadline.date).toLocaleDateString()}</span>
-                            </div>
-                          </div>
+          {/* RIGHT — Announcements + Next assignment card */}
+          <div className="space-y-4">
+            {!loading &&
+              nextAssignment &&
+              (() => {
+                const status = getDueStatus(nextAssignment.dueDate);
+                return (
+                  <div className="bg-gray-900 rounded-xl p-5 text-white">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                        Next deadline
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 ${status.color}`}
+                      >
+                        {status.label}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-base mb-1 line-clamp-2">
+                      {nextAssignment.title}
+                    </h3>
+                    <p className="text-xs text-gray-400 line-clamp-2 mb-4">
+                      {stripHtml(nextAssignment.description)}
+                    </p>
+                    <div className="space-y-1.5 mb-5">
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Due {formatDate(nextAssignment.dueDate)}</span>
+                      </div>
+                      {nextAssignment.module_id?.title && (
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <BookOpen className="w-3.5 h-3.5" />
+                          <span>{nextAssignment.module_id.title}</span>
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="ml-4 border-blue-200 text-blue-600 hover:bg-blue-50"
-                        >
-                          View Details
-                        </Button>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>
+                          {nextAssignment.points} points ·{" "}
+                          {nextAssignment.submissionType}
+                        </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
-                <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-4 lg:mb-6">Recent Announcements</h3>
-                <div className="space-y-4">
-                  {announcements.map((a) => (
-                    <div key={a.id} className="flex items-start gap-3">
-                      <div className="p-2 bg-gray-100 rounded-lg mt-1">
-                        <Bell className="h-4 w-4 text-gray-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 text-sm mb-1">
-                          {a.title}
-                        </h4>
-                        {a.created_at && <span className="text-xs text-gray-500">{new Date(a.created_at).toLocaleString()}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                    <button className="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-lg transition-colors">
+                      View Assignment
+                    </button>
+                  </div>
+                );
+              })()}
           </div>
         </div>
-      </main>
+      </div>
     </div>
-  )
+  );
 }

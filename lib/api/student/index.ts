@@ -1,4 +1,4 @@
-export * from './profile';
-export * from './dashboard';
-export * from './courses';
+export * from './profile.api';
+export * from './dashboard.api';
+export * from './courses.api';
 

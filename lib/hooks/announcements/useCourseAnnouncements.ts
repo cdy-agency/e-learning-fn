@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getCourseAnnouncements } from '@/lib/api/announcements';
+import { getCourseAnnouncements } from '@/lib/api/student/courses.api';
 import { GET_COURSE_ANNOUNCEMENTS } from '@/lib/constants';
 
 export function useCourseAnnouncements(courseId: string | undefined) {
@@ -7,7 +7,7 @@ export function useCourseAnnouncements(courseId: string | undefined) {
     queryKey: [GET_COURSE_ANNOUNCEMENTS, courseId],
     queryFn: async () => {
       const result = await getCourseAnnouncements(courseId!);
-      return result.announcements || [];
+      return result || [];
     },
     enabled: !!courseId,
   });
