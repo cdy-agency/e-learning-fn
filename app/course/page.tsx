@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { CourseFilters } from "@/components/landingpages/Course/courseFilter";
 import { CourseListItem } from "@/components/landingpages/Course/courseItem";
 import { CourseSearchSort } from "@/components/landingpages/Course/courseSearch";
@@ -15,6 +14,7 @@ import { useInstitutions } from "@/lib/hooks/landing/use-landing-data";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LandingHeader from "@/components/landingpages/header";
+import { useSearchParams } from "next/navigation";
 
 // Type definitions for query params
 export type SortOption = 'trending' | 'newest' | 'oldest' | 'price_low' | 'price_high';
@@ -36,7 +36,8 @@ export interface CourseQueryParams {
 
 const ITEMS_PER_PAGE = 12;
 
-export default function CoursesPage({searchParams}: {searchParams: any}) {
+export default function CoursesPage() {
+  const searchParams = useSearchParams();
   
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,7 +66,6 @@ export default function CoursesPage({searchParams}: {searchParams: any}) {
     
     if (categoryParam) {
       setSelectedCategoryIds([categoryParam]);
-      console.log('🔗 Category from URL:', categoryParam);
     }
     
     if (difficultyParam && ['beginner', 'intermediate', 'advanced'].includes(difficultyParam)) {
@@ -81,7 +81,6 @@ export default function CoursesPage({searchParams}: {searchParams: any}) {
     }
   }, [searchParams]);
 
-  // ==================== DATA FETCHING ====================
 
   // Build query params for API - FIXED: Now supports multi-select properly
   const queryParams = useMemo(() => {
@@ -97,8 +96,6 @@ export default function CoursesPage({searchParams}: {searchParams: any}) {
     
     // FIXED: Support multiple categories (your API should handle comma-separated or multiple params)
     if (selectedCategoryIds.length > 0) {
-      // If your API supports multiple categories, use the first one for now
-      // You may need to update your API to accept multiple category IDs
       params.category = selectedCategoryIds[0];
     }
     
@@ -123,21 +120,6 @@ export default function CoursesPage({searchParams}: {searchParams: any}) {
     if (selectedInstructorIds.length > 0) {
       params.instructor = selectedInstructorIds[0];
     }
-
-    // Debug logging
-    console.log('═══════════════════════════════════════');
-    console.log('🔍 FILTER DEBUG INFO');
-    console.log('═══════════════════════════════════════');
-    console.log('📊 Selected Filters:', {
-      categories: selectedCategoryIds,
-      difficulties: selectedDifficulties,
-      pricing: selectedPricing,
-      institutions: selectedInstitutionIds,
-      instructors: selectedInstructorIds,
-      search: searchQuery,
-    });
-    console.log('📤 Query Params Sent to API:', params);
-    console.log('═══════════════════════════════════════');
 
     return params;
   }, [
@@ -234,12 +216,6 @@ export default function CoursesPage({searchParams}: {searchParams: any}) {
       return true;
     });
     
-    if (apiCourses.length !== filtered.length) {
-      console.log('🚨 CLIENT-SIDE FILTERING ACTIVE!');
-      console.log(`   API returned: ${apiCourses.length} courses`);
-      console.log(`   After filtering: ${filtered.length} courses`);
-      console.log('   ⚠️ YOUR API IS NOT FILTERING CORRECTLY!');
-    }
     
     return filtered;
   }, [apiCourses, selectedDifficulties, selectedCategoryIds, selectedPricing, selectedInstitutionIds, selectedInstructorIds]);
@@ -274,54 +250,45 @@ export default function CoursesPage({searchParams}: {searchParams: any}) {
   }, []);
 
   const handleToggleCategory = useCallback((categoryId: string) => {
-    console.log('🏷️ Toggle Category:', categoryId);
     setSelectedCategoryIds((prev) => {
       const newIds = prev.includes(categoryId)
         ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId];
-      console.log('   Updated Category IDs:', newIds);
       return newIds;
     });
     setCurrentPage(1);
   }, []);
 
   const handleToggleDifficulty = useCallback((difficulty: DifficultyLevel) => {
-    console.log('📊 Toggle Difficulty:', difficulty);
     setSelectedDifficulties((prev) => {
       const newDifficulties = prev.includes(difficulty)
         ? prev.filter((d) => d !== difficulty)
         : [...prev, difficulty];
-      console.log('   Updated Difficulties:', newDifficulties);
       return newDifficulties;
     });
     setCurrentPage(1);
   }, []);
 
   const handlePricingChange = useCallback((pricing: PricingOption | undefined) => {
-    console.log('💰 Pricing Change:', pricing);
     setSelectedPricing(pricing);
     setCurrentPage(1);
   }, []);
 
   const handleToggleInstitution = useCallback((institutionId: string) => {
-    console.log('🏫 Toggle Institution:', institutionId);
     setSelectedInstitutionIds((prev) => {
       const newIds = prev.includes(institutionId)
         ? prev.filter((id) => id !== institutionId)
         : [...prev, institutionId];
-      console.log('   Updated Institution IDs:', newIds);
       return newIds;
     });
     setCurrentPage(1);
   }, []);
 
   const handleToggleInstructor = useCallback((instructorId: string) => {
-    console.log('👨‍🏫 Toggle Instructor:', instructorId);
     setSelectedInstructorIds((prev) => {
       const newIds = prev.includes(instructorId)
         ? prev.filter((id) => id !== instructorId)
         : [...prev, instructorId];
-      console.log('   Updated Instructor IDs:', newIds);
       return newIds;
     });
     setCurrentPage(1);

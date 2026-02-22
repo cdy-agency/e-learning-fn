@@ -4,6 +4,7 @@ import { ClipboardList, Calendar, Clock, CheckCircle, Circle, AlertCircle } from
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useAssignmentsByCourse } from "@/lib/hooks/assignments"
+import { useParams } from "next/navigation"
 
 interface AssignmentItem {
   priority: string
@@ -16,8 +17,9 @@ interface AssignmentItem {
   type?: string
 }
 
-export default function CourseAssignmentsPage({ params }: { params: { courseId: string } }) {
-  const { courseId } = params
+export default function CourseAssignmentsPage() {
+  const params = useParams()
+  const courseId = params.courseId as string
   const { data: assignmentsData = [], isLoading } = useAssignmentsByCourse(courseId)
 
   const getPriorityColor = (priority: string) => {
@@ -80,25 +82,7 @@ export default function CourseAssignmentsPage({ params }: { params: { courseId: 
               <span className="text-sm font-medium text-gray-900">Completed</span>
             </div>
             <p className="text-2xl font-bold text-green-600 mt-2">
-              {assignmentsData.filter(a => a.submitted).length}
-            </p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-              <span className="text-sm font-medium text-gray-900">Upcoming</span>
-            </div>
-            <p className="text-2xl font-bold text-red-600 mt-2">
-              {assignmentsData.filter(a => a.priority === "upcoming").length}
-            </p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <Circle className="h-5 w-5 text-gray-400" />
-              <span className="text-sm font-medium text-gray-900">Not Started</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-600 mt-2">
-              {assignmentsData.filter(a => !a.submitted).length}
+              {assignmentsData.filter(a => a).length}
             </p>
           </div>
         </div>
