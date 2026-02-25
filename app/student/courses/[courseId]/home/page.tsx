@@ -4,13 +4,10 @@ import {
   Bell,
   BookOpen,
   FileText,
-  X,
-  PlayCircle,
   ChevronRight,
   Clock,
   CheckCircle2,
 } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   isPast,
@@ -76,8 +73,8 @@ function getDueStatus(dueDate: string): {
     };
   return {
     label: "Upcoming",
-    color: "text-cyan-600",
-    border: "border-l-cyan-400",
+    color: "text-white",
+    border: "border-l-primary",
   };
 }
 
@@ -192,7 +189,7 @@ export default function CourseHomePage() {
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-1.5">
                   <div
-                    className="h-1.5 bg-cyan-500 rounded-full transition-all duration-700"
+                    className="h-1.5 bg-primary rounded-full transition-all duration-700"
                     style={{ width: `${progress.progress_percentage}%` }}
                   />
                 </div>
@@ -203,14 +200,6 @@ export default function CourseHomePage() {
                   </p>
                 )}
               </div>
-
-              <Link
-                href={`/student/courses/${courseId}/learn`}
-                className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-semibold rounded-lg transition-colors flex-shrink-0"
-              >
-                <PlayCircle className="w-3.5 h-3.5" />
-                Continue Learning
-              </Link>
             </>
           )}
         </div>
@@ -229,7 +218,7 @@ export default function CourseHomePage() {
                 )}
               </h3>
               {!loading && assignments.length > 2 && (
-                <button className="text-xs text-cyan-600 hover:underline">
+                <button className="text-xs text-primary hover:underline">
                   See all
                 </button>
               )}
@@ -385,7 +374,7 @@ export default function CourseHomePage() {
                         </span>
                       </div>
                     </div>
-                    <button className="w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold rounded-lg transition-colors">
+                    <button className="w-full py-2 bg-primary hover:bg-cyan-600 text-white text-xs font-semibold rounded-lg transition-colors">
                       View Assignment
                     </button>
                   </div>

@@ -72,8 +72,8 @@ export default function StudentTopNav() {
   }, [])
 
   return (
-    <div className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="mx-auto flex h-12 w-full max-w-6xl items-center px-2 sm:h-14 sm:px-3">
+    <div className="sticky top-0 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div className="mx-auto flex h-12 w-full items-center px-2 sm:h-14 sm:px-16">
 
         {/* LEFT SIDE */}
         <div className="flex items-center gap-1 sm:gap-2">

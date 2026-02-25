@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { listExams } from '@/app/lib/api'
-import { fetchCourseById } from '@/lib/api/courses'
+import { fetchCourseById } from '@/lib/api/student/courses.api'
 import type { Course } from '@/lib/types/course'
 import type { Exam } from '@/lib/types/assessments'
 import ExamCard from '@/components/assessments/ExamCard'

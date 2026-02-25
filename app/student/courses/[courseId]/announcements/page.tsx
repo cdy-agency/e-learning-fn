@@ -23,10 +23,6 @@ export default function CourseAnnouncementsPage() {
             <Calendar className="h-4 w-4 mr-2" />
             Calendar
           </Button>
-          <Button variant="outline" className="h-8 text-sm bg-transparent border-gray-300">
-            <Megaphone className="h-4 w-4 mr-2" />
-            Subscribe
-          </Button>
         </div>
       </header>
 

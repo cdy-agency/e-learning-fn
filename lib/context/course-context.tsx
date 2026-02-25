@@ -7,7 +7,6 @@ import * as courseApi from '../api/courses';
 import * as progressApi from '../api/progress';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { CourseFormState } from '@/types/course.types';
 
 interface CourseState {
   courses: Course[];

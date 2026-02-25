@@ -156,8 +156,7 @@ export function mapCourseToListItem(course: Course, categoryName?: string) {
   };
 }
 
-// ==================== SEARCH UTILITIES ====================
-
+// SEARCH UTILITIES
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -170,8 +169,7 @@ export function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-// ==================== URL PARAMS UTILITIES ====================
-
+// URL PARAMS UTILITIES
 export function buildQueryParams(filters: Record<string, any>): string {
   const params = new URLSearchParams();
   

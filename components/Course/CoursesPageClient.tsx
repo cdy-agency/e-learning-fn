@@ -17,9 +17,14 @@ import LandingHeader from "@/components/landingpages/header";
 import { useSearchParams } from "next/navigation";
 
 // Type definitions for query params
-export type SortOption = 'trending' | 'newest' | 'oldest' | 'price_low' | 'price_high';
-export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
-export type PricingOption = 'free' | 'paid';
+export type SortOption =
+  | "trending"
+  | "newest"
+  | "oldest"
+  | "price_low"
+  | "price_high";
+export type DifficultyLevel = "beginner" | "intermediate" | "advanced";
+export type PricingOption = "free" | "paid";
 
 export interface CourseQueryParams {
   page: number;
@@ -38,17 +43,25 @@ const ITEMS_PER_PAGE = 12;
 
 export default function CoursesPage() {
   const searchParams = useSearchParams();
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("trending");
 
   // Filter states
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<DifficultyLevel[]>([]);
-  const [selectedPricing, setSelectedPricing] = useState<PricingOption | undefined>();
-  const [selectedInstitutionIds, setSelectedInstitutionIds] = useState<string[]>([]);
-  const [selectedInstructorIds, setSelectedInstructorIds] = useState<string[]>([]);
+  const [selectedDifficulties, setSelectedDifficulties] = useState<
+    DifficultyLevel[]
+  >([]);
+  const [selectedPricing, setSelectedPricing] = useState<
+    PricingOption | undefined
+  >();
+  const [selectedInstitutionIds, setSelectedInstitutionIds] = useState<
+    string[]
+  >([]);
+  const [selectedInstructorIds, setSelectedInstructorIds] = useState<string[]>(
+    [],
+  );
 
   // Panel visibility states
   const [isCategoryOpen, setIsCategoryOpen] = useState(true);
@@ -59,23 +72,26 @@ export default function CoursesPage() {
 
   // Read URL params on mount and set initial filters
   useEffect(() => {
-    const categoryParam = searchParams.get('category');
-    const difficultyParam = searchParams.get('difficulty');
-    const pricingParam = searchParams.get('pricing');
-    const searchParam = searchParams.get('q');
-    
+    const categoryParam = searchParams.get("category");
+    const difficultyParam = searchParams.get("difficulty");
+    const pricingParam = searchParams.get("pricing");
+    const searchParam = searchParams.get("q");
+
     if (categoryParam) {
       setSelectedCategoryIds([categoryParam]);
     }
-    
-    if (difficultyParam && ['beginner', 'intermediate', 'advanced'].includes(difficultyParam)) {
+
+    if (
+      difficultyParam &&
+      ["beginner", "intermediate", "advanced"].includes(difficultyParam)
+    ) {
       setSelectedDifficulties([difficultyParam as DifficultyLevel]);
     }
-    
-    if (pricingParam && ['free', 'paid'].includes(pricingParam)) {
+
+    if (pricingParam && ["free", "paid"].includes(pricingParam)) {
       setSelectedPricing(pricingParam as PricingOption);
     }
-    
+
     if (searchParam) {
       setSearchQuery(searchParam);
     }
@@ -91,29 +107,29 @@ export default function CoursesPage() {
     if (searchQuery) {
       params.q = searchQuery;
     }
-    
+
     // Support multiple categories
     if (selectedCategoryIds.length > 0) {
       params.category = selectedCategoryIds[0];
     }
-    
+
     // FIXED: Support multiple difficulties
     if (selectedDifficulties.length > 0) {
       params.difficulty = selectedDifficulties[0];
     }
-    
+
     // Pricing filter
     if (selectedPricing === "free") {
       params.price_max = 0;
     } else if (selectedPricing === "paid") {
       params.price_min = 1;
     }
-    
+
     // Support multiple institutions
     if (selectedInstitutionIds.length > 0) {
       params.institution = selectedInstitutionIds[0];
     }
-    
+
     // FIXED: Support multiple instructors
     if (selectedInstructorIds.length > 0) {
       params.instructor = selectedInstructorIds[0];
@@ -137,20 +153,25 @@ export default function CoursesPage() {
     error: coursesError,
     pagination,
   } = useCourses(queryParams);
-  
-  const { categories: rawCategories, loading: categoriesLoading } = useCategories();
+
+  const { categories: rawCategories, loading: categoriesLoading } =
+    useCategories();
   const { institutions, loading: institutionsLoading } = useInstitutions();
   const { instructors, loading: instructorsLoading } = useInstructors();
 
   // Client-side filtering as safety net (in case API doesn't filter correctly)
   const courses = useMemo(() => {
     if (!apiCourses) return [];
-    
+
     const filtered = apiCourses.filter((course) => {
       // Filter by difficulty
       if (selectedDifficulties.length > 0) {
-        if (!selectedDifficulties.includes(course.difficulty_level as DifficultyLevel)) {
-          console.warn('⚠️ Filtering out course - Wrong difficulty:', {
+        if (
+          !selectedDifficulties.includes(
+            course.difficulty_level as DifficultyLevel,
+          )
+        ) {
+          console.warn("⚠️ Filtering out course - Wrong difficulty:", {
             course: course.title,
             actual: course.difficulty_level,
             expected: selectedDifficulties,
@@ -158,11 +179,11 @@ export default function CoursesPage() {
           return false;
         }
       }
-      
+
       // Filter by category
       if (selectedCategoryIds.length > 0) {
-        if (!selectedCategoryIds.includes(course.category?._id || '')) {
-          console.warn('⚠️ Filtering out course - Wrong category:', {
+        if (!selectedCategoryIds.includes(course.category?._id || "")) {
+          console.warn("⚠️ Filtering out course - Wrong category:", {
             course: course.title,
             actual: course.category?._id,
             expected: selectedCategoryIds,
@@ -170,27 +191,27 @@ export default function CoursesPage() {
           return false;
         }
       }
-      
+
       // Filter by pricing
-      if (selectedPricing === 'free' && course.price > 0) {
-        console.warn('⚠️ Filtering out course - Should be free:', {
+      if (selectedPricing === "free" && course.price > 0) {
+        console.warn("⚠️ Filtering out course - Should be free:", {
           course: course.title,
           price: course.price,
         });
         return false;
       }
-      if (selectedPricing === 'paid' && course.price === 0) {
-        console.warn('⚠️ Filtering out course - Should be paid:', {
+      if (selectedPricing === "paid" && course.price === 0) {
+        console.warn("⚠️ Filtering out course - Should be paid:", {
           course: course.title,
           price: course.price,
         });
         return false;
       }
-      
+
       // Filter by institution
       if (selectedInstitutionIds.length > 0) {
-        if (!selectedInstitutionIds.includes(course.institution?._id || '')) {
-          console.warn('⚠️ Filtering out course - Wrong institution:', {
+        if (!selectedInstitutionIds.includes(course.institution?._id || "")) {
+          console.warn("⚠️ Filtering out course - Wrong institution:", {
             course: course.title,
             actual: course.institution?._id,
             expected: selectedInstitutionIds,
@@ -198,11 +219,11 @@ export default function CoursesPage() {
           return false;
         }
       }
-      
+
       // Filter by instructor
       if (selectedInstructorIds.length > 0) {
-        if (!selectedInstructorIds.includes(course.instructor_id?._id || '')) {
-          console.warn('⚠️ Filtering out course - Wrong instructor:', {
+        if (!selectedInstructorIds.includes(course.instructor_id?._id || "")) {
+          console.warn("⚠️ Filtering out course - Wrong instructor:", {
             course: course.title,
             actual: course.instructor_id?._id,
             expected: selectedInstructorIds,
@@ -210,13 +231,29 @@ export default function CoursesPage() {
           return false;
         }
       }
-      
+
       return true;
     });
-    
-    
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return filtered.filter(
+        (course) =>
+          course.title?.toLowerCase().includes(q) ||
+          course.description?.toLowerCase().includes(q),
+      );
+    }
+
     return filtered;
-  }, [apiCourses, selectedDifficulties, selectedCategoryIds, selectedPricing, selectedInstitutionIds, selectedInstructorIds]);
+  }, [
+    apiCourses,
+    searchQuery,
+    selectedDifficulties,
+    selectedCategoryIds,
+    selectedPricing,
+    selectedInstitutionIds,
+    selectedInstructorIds,
+  ]);
 
   // Categories are flat from API
   const categories = rawCategories ?? [];
@@ -230,8 +267,7 @@ export default function CoursesPage() {
     return map;
   }, [rawCategories]);
 
-  // ==================== HANDLERS ====================
-
+  // HANDLERS
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -239,7 +275,7 @@ export default function CoursesPage() {
 
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1); // Reset to first page on search
+    setCurrentPage(1);
   }, []);
 
   const handleSortChange = useCallback((sort: SortOption) => {
@@ -267,10 +303,13 @@ export default function CoursesPage() {
     setCurrentPage(1);
   }, []);
 
-  const handlePricingChange = useCallback((pricing: PricingOption | undefined) => {
-    setSelectedPricing(pricing);
-    setCurrentPage(1);
-  }, []);
+  const handlePricingChange = useCallback(
+    (pricing: PricingOption | undefined) => {
+      setSelectedPricing(pricing);
+      setCurrentPage(1);
+    },
+    [],
+  );
 
   const handleToggleInstitution = useCallback((institutionId: string) => {
     setSelectedInstitutionIds((prev) => {
@@ -321,8 +360,6 @@ export default function CoursesPage() {
     searchQuery,
   ]);
 
-  // ==================== RENDER ====================
-
   return (
     <div className="min-h-screen bg-background">
       <LandingHeader />
@@ -365,7 +402,9 @@ export default function CoursesPage() {
             onCategoryToggle={() => setIsCategoryOpen(!isCategoryOpen)}
             onDifficultyToggle={() => setIsDifficultyOpen(!isDifficultyOpen)}
             onPricingToggle={() => setIsPricingOpen(!isPricingOpen)}
-            onInstitutionsToggle={() => setIsInstitutionsOpen(!isInstitutionsOpen)}
+            onInstitutionsToggle={() =>
+              setIsInstitutionsOpen(!isInstitutionsOpen)
+            }
             onInstructorsToggle={() => setIsInstructorsOpen(!isInstructorsOpen)}
           />
 
@@ -438,12 +477,12 @@ export default function CoursesPage() {
             {/* Courses List */}
             {!coursesLoading && !coursesError && courses.length > 0 && (
               <div className="bg-card">
-                <div className="divide-y divide-gray-200 dark:divide-gray-700/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {courses.map((course) => (
                     <CourseListItem
                       key={course._id}
                       course={course}
-                      categoryName={categoryMap.get(course.category.name)}
+                      categoryName={categoryMap.get(course.category._id)}
                     />
                   ))}
                 </div>
@@ -460,7 +499,8 @@ export default function CoursesPage() {
                     />
                     {courses.length !== pagination.totalCourses && (
                       <p className="text-xs text-yellow-600 mt-2 text-center">
-                        ⚠️ Showing {courses.length} of {pagination.totalCourses} courses (API filtering not working correctly)
+                        ⚠️ Showing {courses.length} of {pagination.totalCourses}{" "}
+                        courses (API filtering not working correctly)
                       </p>
                     )}
                   </div>

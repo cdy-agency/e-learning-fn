@@ -2,162 +2,151 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarCollapseTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar"
-import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { User2, LayoutDashboard, BookOpen, Users, Calendar, Inbox, History, LifeBuoy } from "lucide-react"
+import {
+  User2,
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  Calendar,
+  Inbox,
+  History,
+  LifeBuoy,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 import { getMyStudentProfile } from "@/lib/api/student"
 
-export function MainSidebar() {
+export const ICON_W = 56 
+export const FULL_W = 220
+
+const navItems = [
+  { href: "/student/account",   icon: User2,          label: "Account",   badge: null },
+  { href: "/student",           icon: LayoutDashboard, label: "Dashboard", badge: null, exact: true },
+  { href: "/student/courses",   icon: BookOpen,        label: "Courses",   badge: null },
+  { href: "/student/groups",    icon: Users,           label: "Groups",    badge: null },
+  { href: "/student/calendar",  icon: Calendar,        label: "Calendar",  badge: null },
+  { href: "/student/inbox",     icon: Inbox,           label: "Inbox",     badge: null },
+  { href: "/student/history",   icon: History,         label: "History",   badge: "10" },
+  { href: "/student/help",      icon: LifeBuoy,        label: "Help",      badge: null },
+]
+
+export interface MainSidebarProps {
+  hovered: boolean
+  setHovered: (hovered: boolean) => void
+}
+
+export function MainSidebar({ hovered, setHovered }: MainSidebarProps) {
   const pathname = usePathname()
-  const { state } = useSidebar()
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
       try {
         const res = await getMyStudentProfile()
-        const url = res?.student?.profile_image || null
-        setAvatarUrl(url)
+        setAvatarUrl(res?.student?.profile_image || null)
       } catch {}
     }
     load()
   }, [])
 
+  const isActive = (href: string, exact?: boolean) =>
+    exact ? pathname === href : pathname.startsWith(href)
+
   return (
-    <TooltipProvider>
-      <Sidebar
-        side="left"
-        collapsible="icon"
-        className="bg-slate-700 text-white border-r border-blue-800 hidden lg:block"
-      >
-        <div className="flex h-14 sm:h-16 items-center justify-between border-b border-slate-600 px-2">
-          <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
-            <span className="text-red-500 text-sm sm:text-base font-bold">CDY</span>
-            {state === "expanded" && (
-              <span className="text-white text-xs sm:text-sm font-semibold">
-                <span className="sr-only">CDY</span>
+    <aside
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: hovered ? FULL_W : ICON_W,
+        minWidth: hovered ? FULL_W : ICON_W,
+        transition: "width 220ms cubic-bezier(0.4,0,0.2,1), min-width 220ms cubic-bezier(0.4,0,0.2,1)",
+      }}
+      className="hidden lg:flex fixed left-0 top-0 h-screen flex-col bg-slate-700 border-r border-blue-800 overflow-hidden z-50"
+    >
+      {/* Logo */}
+      <div className="flex h-16 items-center border-b border-slate-600 px-0 overflow-hidden flex-shrink-0">
+        <Link
+          href="/"
+          className="flex items-center gap-3 pl-0 w-full"
+          style={{ paddingLeft: hovered ? 20 : 0, transition: "padding-left 220ms cubic-bezier(0.4,0,0.2,1)" }}
+        >
+          {/* Icon area always same width as ICON_W so it doesn't jump */}
+          <span
+            className="text-red-500 font-bold text-base flex-shrink-0 flex items-center justify-center"
+            style={{ width: ICON_W, transition: "width 0ms" }}
+          >
+            CDY
+          </span>
+          <span
+            className="text-white text-sm font-semibold whitespace-nowrap overflow-hidden"
+            style={{
+              opacity: hovered ? 1 : 0,
+              maxWidth: hovered ? 140 : 0,
+              transition: "opacity 180ms ease, max-width 220ms cubic-bezier(0.4,0,0.2,1)",
+            }}
+          >
+            IGA-VUBA
+          </span>
+        </Link>
+      </div>
+
+      {/* Nav items */}
+      <nav className="flex-1 py-2 overflow-y-auto overflow-x-hidden">
+        {navItems.map(({ href, icon: Icon, label, badge, exact }) => {
+          const active = isActive(href, exact)
+          const isAccount = href === "/student/account"
+
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex items-center h-11 text-white transition-colors duration-150 relative",
+                active ? "bg-blue-700" : "hover:bg-blue-800"
+              )}
+              style={{ width: "100%" }}
+            >
+              {/* Active indicator bar */}
+              {active && (
+                <span className="absolute left-0 top-0 h-full w-0.5 bg-white rounded-r" />
+              )}
+
+              {/* Icon cell — fixed width matches collapsed sidebar */}
+              <span
+                className="flex items-center justify-center flex-shrink-0"
+                style={{ width: ICON_W }}
+              >
+                {isAccount && avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Profile"
+                    className="h-5 w-5 rounded-full object-cover"
+                  />
+                ) : (
+                  <Icon className="h-5 w-5" />
+                )}
               </span>
-            )}
-          </Link>
 
-          {/* Collapse/Expand trigger */}
-          <SidebarCollapseTrigger className="h-8 w-8 sm:h-9 sm:w-9" />
-        </div>
-
-        <SidebarContent className="flex-1 py-1 sm:py-2">
-          <SidebarGroup>
-            <SidebarMenu className="space-y-1">
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Account">
-                  <Link href="/student/account" className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 text-white hover:bg-blue-800 transition-colors duration-200">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Profile" className="h-4 w-4 sm:h-5 sm:w-5 rounded-full object-cover flex-shrink-0" />
-                    ) : (
-                      <User2 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    )}
-                    {state === "expanded" && <span className="text-sm sm:text-base">Account</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={pathname === "/student"} 
-                  tooltip="Dashboard"
-                  className={cn(
-                    "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 text-white transition-colors duration-200",
-                    pathname === "/student" ? "bg-blue-700" : "hover:bg-blue-800"
-                  )}
-                >
-                  <Link href="/student">
-                    <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    {state === "expanded" && <span className="text-sm sm:text-base">Dashboard</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={pathname.startsWith("/student/courses")} 
-                  tooltip="Courses"
-                  className={cn(
-                    "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 text-white transition-colors duration-200",
-                    pathname.startsWith("/student/courses") ? "bg-blue-700" : "hover:bg-blue-800"
-                  )}
-                >
-                  <Link href="/student/courses">
-                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    {state === "expanded" && <span className="text-sm sm:text-base">Courses</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Groups">
-                  <Link href="/student/groups" className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 text-white hover:bg-blue-800 transition-colors duration-200">
-                    <Users className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    {state === "expanded" && <span className="text-sm sm:text-base">Groups</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Calendar">
-                  <Link href="/student/calendar" className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 text-white hover:bg-blue-800 transition-colors duration-200">
-                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    {state === "expanded" && <span className="text-sm sm:text-base">Calendar</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Inbox">
-                  <Link href="/student/inbox" className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 text-white hover:bg-blue-800 transition-colors duration-200">
-                    <Inbox className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    {state === "expanded" && <span className="text-sm sm:text-base">Inbox</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="History">
-                  <Link href="/student/history" className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 text-white hover:bg-blue-800 transition-colors duration-200">
-                    <History className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    {state === "expanded" && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm sm:text-base">History</span>
-                        <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center flex-shrink-0">10</span>
-                      </div>
-                    )}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Help">
-                  <Link href="/student/help" className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 text-white hover:bg-blue-800 transition-colors duration-200">
-                    <LifeBuoy className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    {state === "expanded" && <span className="text-sm sm:text-base">Help</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
-      </Sidebar>
-    </TooltipProvider>
+              {/* Label — fades + slides in */}
+              <span
+                className="text-sm whitespace-nowrap overflow-hidden flex items-center gap-2"
+                style={{
+                  opacity: hovered ? 1 : 0,
+                  maxWidth: hovered ? 160 : 0,
+                  transition: "opacity 160ms ease, max-width 220ms cubic-bezier(0.4,0,0.2,1)",
+                }}
+              >
+                {label}
+                {badge && (
+                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
+                    {badge}
+                  </span>
+                )}
+              </span>
+            </Link>
+          )
+        })}
+      </nav>
+    </aside>
   )
 }

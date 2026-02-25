@@ -1,20 +1,25 @@
-'use client';
+"use client";
 
-import { Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
-import { debounce } from '@/util/courseUtil';
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { debounce } from "@/util/courseUtil";
 
 // Type definition for sort options
-export type SortOption = 'trending' | 'newest' | 'oldest' | 'price_low' | 'price_high';
+export type SortOption =
+  | "trending"
+  | "newest"
+  | "oldest"
+  | "price_low"
+  | "price_high";
 
 interface CourseSearchSortProps {
   searchQuery: string;
@@ -35,24 +40,24 @@ export function CourseSearchSort({
 
   // Debounced search handler
   useEffect(() => {
-    const debouncedSearch = debounce((value: string) => {
-      onSearchChange(value);
+    const timer = setTimeout(() => {
+      onSearchChange(localSearch);
     }, 500);
 
-    debouncedSearch(localSearch);
+    return () => clearTimeout(timer);
   }, [localSearch, onSearchChange]);
 
   const handleClearSearch = () => {
-    setLocalSearch('');
-    onSearchChange('');
+    setLocalSearch("");
+    onSearchChange("");
   };
 
   const sortOptions: Array<{ value: SortOption; label: string }> = [
-    { value: 'trending', label: 'Most Popular' },
-    { value: 'newest', label: 'Newest First' },
-    { value: 'oldest', label: 'Oldest First' },
-    { value: 'price_low', label: 'Price: Low to High' },
-    { value: 'price_high', label: 'Price: High to Low' },
+    { value: "trending", label: "Most Popular" },
+    { value: "newest", label: "Newest First" },
+    { value: "oldest", label: "Oldest First" },
+    { value: "price_low", label: "Price: Low to High" },
+    { value: "price_high", label: "Price: High to Low" },
   ];
 
   return (
@@ -103,8 +108,11 @@ export function CourseSearchSort({
             <span>No courses found</span>
           ) : (
             <span>
-              Found <span className="font-medium text-foreground">{totalResults}</span>{' '}
-              {totalResults === 1 ? 'course' : 'courses'}
+              Found{" "}
+              <span className="font-medium text-foreground">
+                {totalResults}
+              </span>{" "}
+              {totalResults === 1 ? "course" : "courses"}
             </span>
           )}
         </div>
