@@ -45,7 +45,7 @@ export default function LandingHeader() {
         {/* Logo */}
         <div className="flex items-center space-x-3">
           <GraduationCap className="h-8 w-8 text-purple-600" />
-          <span className="text-xl font-bold text-gray-800">EduVerse</span>
+          <span className="text-xl font-bold text-gray-800">IGA-VUBA</span>
         </div>
 
         {/* Navbar Links */}

@@ -121,3 +121,16 @@ export async function markLessonComplete(
   );
   return data;
 }
+
+export async function getEnrollmentByCourseId(courseId: string): Promise<EnrolledCourse | null> {
+  try {
+    const { data } = await axiosInstance.get(`/api/enrollment/${courseId}`);
+    return data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null; 
+    }
+    throw error;
+  }
+}
+

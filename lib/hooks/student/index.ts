@@ -6,5 +6,6 @@ export * from './useStudentCalendar';
 export * from './useCourseProgress';
 export * from './useStudentGrades';
 export * from './useMarkLessonComplete';
+export * from './useEnrolledCourseById';  
 
 

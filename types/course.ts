@@ -1,5 +1,3 @@
-// ==================== COURSE TYPES ====================
-
 import { CategoryResponse } from "./course.types";
 
 export interface Course {

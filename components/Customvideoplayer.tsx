@@ -113,7 +113,7 @@ export default function EnhancedVideoPlayer({
     return (
       <div
         ref={containerRef}
-        className={`relative bg-black rounded-xl overflow-hidden ${className}`}
+        className={`relative bg-black rounded overflow-hidden ${className}`}
       >
         <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
           <iframe

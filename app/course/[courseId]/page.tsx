@@ -18,26 +18,35 @@ import { getCourseById } from "@/lib/api/public";
 import LandingHeader from "@/components/landingpages/header";
 import { LandingFooter } from "@/components/landingpages/landingFooter";
 import { EnrollButton } from "@/components/Course/enrollButton";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { useEnrolledCourseById } from "@/lib/hooks/student";
 
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const courseId = params.courseId as string;
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { data: enrollmentData } = useEnrolledCourseById(courseId);
 
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
-
-  // Read token from localStorage once on mount
-  useEffect(() => {
-    setToken(localStorage.getItem("token"));
-  }, []);
 
   useEffect(() => {
     loadCourse();
   }, [courseId]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated || !courseId) {
+      setIsEnrolled(false);
+      return;
+    }
+
+    const enrollment = Array.isArray(enrollmentData) ? enrollmentData[0] : null;
+    setIsEnrolled(enrollment?.status === "active");
+  }, [isAuthenticated, authLoading, courseId, enrollmentData]);
 
   const loadCourse = async () => {
     if (!courseId) return;
@@ -75,12 +84,11 @@ export default function CourseDetailPage() {
     return `${price.toLocaleString()} RWF`;
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
           <p className="mt-4 text-gray-600 dark:text-gray-400">
             Loading course...
           </p>
@@ -89,7 +97,6 @@ export default function CourseDetailPage() {
     );
   }
 
-  // Error state
   if (error || !course) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -99,7 +106,7 @@ export default function CourseDetailPage() {
           </p>
           <button
             onClick={() => router.push("/course")}
-            className="text-blue-600 hover:text-blue-700 underline"
+            className="text-primary hover:text-blue-700 underline"
           >
             Back to courses
           </button>
@@ -120,7 +127,7 @@ export default function CourseDetailPage() {
             backgroundImage: `url(${course.thumbnail || "/placeholder-course.jpg"})`,
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-primary/60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/40 to-primary/20" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -160,13 +167,48 @@ export default function CourseDetailPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Video Player */}
+            <div className="bg-white dark:bg-gray-800 rounded shadow-sm">
+              {course.video && course.video.trim() !== "" ? (
+                <EnhancedVideoPlayer
+                  videoUrl={course.video}
+                  posterUrl={course.videoThumbnail || course.thumbnail}
+                  className="aspect-video rounded overflow-hidden"
+                />
+              ) : course.externalUrl && course.externalUrl.trim() !== "" ? (
+                <EnhancedVideoPlayer
+                  videoUrl={course.externalUrl}
+                  posterUrl={course.videoThumbnail || course.thumbnail}
+                  className="aspect-video rounded overflow-hidden"
+                />
+              ) : (
+                <div className="aspect-video rounded bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+                  {course.thumbnail || course.videoThumbnail ? (
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={course.thumbnail || course.videoThumbnail || ""}
+                        alt="Course preview"
+                        fill
+                        className="object-cover rounded"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-400">
+                      <BookOpen className="w-16 h-16 mx-auto mb-2 opacity-30" />
+                      <p>No preview available</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
             {course.description && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+              <div className="bg-white dark:bg-gray-800 rounded shadow-sm p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                   About this course
                 </h2>
@@ -178,60 +220,9 @@ export default function CourseDetailPage() {
               </div>
             )}
 
-            {/* Video Player */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                Course Preview
-              </h2>
-              {course.video && course.video.trim() !== "" ? (
-                <EnhancedVideoPlayer
-                  videoUrl={course.video}
-                  posterUrl={course.videoThumbnail || course.thumbnail}
-                  className="aspect-video rounded-lg overflow-hidden"
-                />
-              ) : course.externalUrl && course.externalUrl.trim() !== "" ? (
-                <EnhancedVideoPlayer
-                  videoUrl={course.externalUrl}
-                  posterUrl={course.videoThumbnail || course.thumbnail}
-                  className="aspect-video rounded-lg overflow-hidden"
-                />
-              ) : (
-                <div className="aspect-video rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
-                  {course.thumbnail || course.videoThumbnail ? (
-                    <div className="relative w-full h-full">
-                      <Image
-                        src={course.thumbnail || course.videoThumbnail || ""}
-                        alt="Course preview"
-                        fill
-                        className="object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <div className="text-center text-white">
-                          <BookOpen className="w-16 h-16 mx-auto mb-3 opacity-80" />
-                          <p className="text-lg font-semibold">
-                            Video preview coming soon
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-400">
-                      <BookOpen className="w-16 h-16 mx-auto mb-3" />
-                      <p className="text-lg font-semibold">
-                        Video preview coming soon
-                      </p>
-                      <p className="text-sm mt-2">
-                        Full course content available after enrollment
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* What You'll Learn */}
             {course.prerequisites && course.prerequisites.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+              <div className="bg-white dark:bg-gray-800 rounded shadow-sm p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                   What You&apos;ll Learn
                 </h2>
@@ -242,7 +233,7 @@ export default function CourseDetailPage() {
                     return (
                       <div
                         key={i}
-                        className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                        className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                       >
                         <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                         <p className="text-gray-700 dark:text-gray-300 text-sm">
@@ -259,10 +250,9 @@ export default function CourseDetailPage() {
           {/* Right Column: Sticky Course Card */}
           <div className="lg:col-span-1">
             <div className="sticky top-20">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-
+              <div className="bg-white dark:bg-gray-800 rounded shadow-sm overflow-hidden">
                 {/* Course Thumbnail */}
-                <div className="relative h-48 bg-gradient-to-br from-blue-600 to-blue-800">
+                <div className="relative rounded h-48 bg-gradient-to-br from-blue-600 to-blue-800">
                   {course.thumbnail ? (
                     <Image
                       src={course.thumbnail}
@@ -293,11 +283,10 @@ export default function CourseDetailPage() {
                     </p>
                   </div>
 
-                  {/* ── EnrollButton replaces the old handleEnroll button ── */}
+                  {/* ✅ No token prop needed anymore */}
                   <EnrollButton
                     courseId={course._id}
                     courseName={course.title}
-                    token={token}
                     isEnrolled={isEnrolled}
                     className="py-2.5 font-semibold text-sm shadow-md"
                   />
@@ -373,7 +362,7 @@ export default function CourseDetailPage() {
 
               {/* Institution Card */}
               {course.institution && (
-                <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                <div className="mt-6 bg-white dark:bg-gray-800 rounded shadow-sm p-6">
                   <h3 className="font-semibold text-base text-gray-900 dark:text-white mb-4">
                     Institution
                   </h3>
@@ -403,7 +392,6 @@ export default function CourseDetailPage() {
               )}
             </div>
           </div>
-
         </div>
       </div>
       <LandingFooter />
