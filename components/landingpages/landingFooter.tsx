@@ -69,7 +69,7 @@ export function LandingFooter() {
                 <div className="h-8 w-8 rounded-lg bg-[var(--coursera-blue)] flex items-center justify-center">
                   <GraduationCap className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-xl font-bold text-white">EduVerse</span>
+                <span className="text-xl font-bold text-white">IGA-VUBA</span>
               </div>
               <p className="text-sm text-slate-300 mt-8 max-w-xs lg:mx-0">
                 Connecting learners with world-class education from leading
@@ -122,7 +122,7 @@ export function LandingFooter() {
                       href="mailto:info@oazis.rw"
                       className="text-slate-300 hover:text-white transition-colors"
                     >
-                      info@eduverse.rw
+                      info@igavuba.rw
                     </a>
                   </div>
                 </div>
@@ -150,7 +150,7 @@ export function LandingFooter() {
           <div className="pt-6 pb-8 border-t border-slate-700">
             <div className="flex flex-col items-center gap-2 text-center py-4">
               <p className="text-xs text-slate-400">
-                © {new Date().getFullYear()} eduVerse. All rights reserved.
+                © {new Date().getFullYear()} IGA-VUBA. All rights reserved.
               </p>
               <p className="text-xs text-slate-400">
                 Powered by{" "}

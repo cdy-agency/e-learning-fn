@@ -40,9 +40,27 @@ export default function CoursePageContent({
   const [isComplete, setIsComplete] = useState(false)
   const [progress, setProgress] = useState(0)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isNavigating, setIsNavigating] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Fix hydration error by only accessing localStorage after mount
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Recalculate progress after mount with actual localStorage values
+  useEffect(() => {
+    if (isMounted && allLessons.length > 0) {
+      const completed = getCompletedLessons(courseId)
+      const progressPercent = Math.round((completed.length / allLessons.length) * 100)
+      setProgress(progressPercent)
+    }
+  }, [isMounted, allLessons, courseId])
 
   useEffect(() => {
     const load = async () => {
+      setIsLoading(true)
       try {
         const modules = await fetchModulesByCourseId(courseId)
         setAllModules(modules || [])
@@ -92,13 +110,15 @@ export default function CoursePageContent({
       } catch {
         setPage(null)
         setAllLessons([])
+      } finally {
+        setIsLoading(false)
       }
     }
     load()
   }, [courseId, pageId])
 
-  const handleMarkComplete = () => {
-    if (page) {
+  const handleMarkCompleteAndNext = () => {
+    if (page && !isComplete) {
       const lessonId = page._id || page.url
       markLessonComplete(courseId, lessonId)
       setIsComplete(true)
@@ -109,21 +129,23 @@ export default function CoursePageContent({
         ? Math.round((completed.length / allLessons.length) * 100) 
         : 0
       setProgress(progressPercent)
-      
-      // Automatically go to next lesson after 1 second
+    }
+    
+    // Navigate to next lesson
+    if (currentIndex < allLessons.length - 1) {
+      setIsNavigating(true)
+      const nextLesson = allLessons[currentIndex + 1]
       setTimeout(() => {
-        if (currentIndex < allLessons.length - 1) {
-          const nextLesson = allLessons[currentIndex + 1]
-          window.location.href = `/student/courses/${courseId}/pages/${nextLesson.url || nextLesson._id}`
-        }
-      }, 1000)
+        window.location.href = `/student/courses/${courseId}/pages/${nextLesson.url || nextLesson._id}`
+      }, 300)
     }
   }
 
   const previousLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null
   const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null
 
-  if (!page) {
+  // Page Not Found - Only shown after loading is complete and no page found
+  if (!isLoading && !page) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
@@ -150,7 +172,7 @@ export default function CoursePageContent({
         {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
-      {/* Sidebar - Course Modules */}
+      {/* Sidebar - Course Modules (Always visible, even during loading) */}
       <aside className={cn(
         "fixed lg:static inset-y-0 right-0 z-40 w-80 bg-white border-l border-gray-200 overflow-y-auto transition-transform duration-300",
         isSidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
@@ -170,7 +192,9 @@ export default function CoursePageContent({
           <div className="space-y-2">
             <div className="flex justify-between text-xs text-gray-600">
               <span>{progress}% Complete</span>
-              <span>{getCompletedLessons(courseId).length} / {allLessons.length}</span>
+              <span>
+                {isMounted ? getCompletedLessons(courseId).length : 0} / {allLessons.length}
+              </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
@@ -185,9 +209,9 @@ export default function CoursePageContent({
         <div className="p-4 space-y-2">
           {allModules.map((module, mIndex) => {
             const moduleItems = allLessons.filter(l => l.moduleIndex === mIndex)
-            const completedInModule = moduleItems.filter(item => 
-              isLessonComplete(courseId, item._id || item.url)
-            ).length
+            const completedInModule = isMounted 
+              ? moduleItems.filter(item => isLessonComplete(courseId, item._id || item.url)).length
+              : 0
             const moduleProgress = moduleItems.length > 0 
               ? Math.round((completedInModule / moduleItems.length) * 100)
               : 0
@@ -210,7 +234,7 @@ export default function CoursePageContent({
                     const isActive = item.id === pageId || 
                                     String(item._id) === pageId || 
                                     String(item.url) === pageId
-                    const isItemComplete = isLessonComplete(courseId, item._id || item.url)
+                    const isItemComplete = isMounted && isLessonComplete(courseId, item._id || item.url)
 
                     return (
                       <Link
@@ -253,110 +277,147 @@ export default function CoursePageContent({
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto p-6 md:p-8 lg:p-12">
-          {/* Breadcrumb */}
-          <div className="mb-6">
-            <Link 
-              href={`/student/courses/${courseId}/modules`}
-              className="text-sm text-gray-600 hover:text-blue-600 flex items-center gap-1"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Course
-            </Link>
-          </div>
+        {isLoading ? (
+          // Loading State - Only for main content area
+          <div className="max-w-4xl mx-auto p-6 md:p-8 lg:p-12">
+            {/* Breadcrumb Skeleton */}
+            <div className="mb-6">
+              <div className="h-4 bg-gray-200 rounded w-32 animate-pulse" />
+            </div>
 
-          {/* Lesson Header */}
-          <div className="mb-8">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
-                {page.title}
-              </h1>
-              {!isComplete && (
-                <Button
-                  onClick={handleMarkComplete}
-                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Mark Complete
-                </Button>
+            {/* Header Skeleton */}
+            <div className="mb-8">
+              <div className="h-10 bg-gray-200 rounded w-3/4 mb-4 animate-pulse" />
+              <div className="h-4 bg-gray-200 rounded w-48 animate-pulse" />
+            </div>
+
+            {/* Content Skeleton */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 md:p-12 mb-8">
+              <div className="space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-full animate-pulse" />
+                <div className="h-4 bg-gray-200 rounded w-full animate-pulse" />
+                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+                <div className="h-4 bg-gray-200 rounded w-full animate-pulse" />
+                <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse" />
+              </div>
+            </div>
+
+            {/* Navigation Skeleton */}
+            <div className="flex items-center justify-between gap-4 py-6 border-t border-gray-200">
+              <div className="h-16 bg-gray-200 rounded-lg w-48 animate-pulse" />
+              <div className="h-16 bg-gray-200 rounded-lg w-48 animate-pulse" />
+            </div>
+          </div>
+        ) : (
+          // Actual Content
+          <div className="max-w-4xl mx-auto p-6 md:p-8 lg:p-12">
+            {/* Breadcrumb */}
+            <div className="mb-6">
+              <Link 
+                href={`/student/courses/${courseId}/modules`}
+                className="text-sm text-gray-600 hover:text-blue-600 flex items-center gap-1"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Course
+              </Link>
+            </div>
+
+            {/* Lesson Header */}
+            <div className="mb-8">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+                  {page?.title}
+                </h1>
+                {isComplete && (
+                  <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg border border-green-200">
+                    <Check className="h-5 w-5" />
+                    <span className="font-medium">Completed</span>
+                  </div>
+                )}
+              </div>
+              
+              {page?.moduleTitle && (
+                <p className="text-sm text-gray-600">
+                  Part of: <span className="font-medium">{page.moduleTitle}</span>
+                </p>
               )}
-              {isComplete && (
-                <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg border border-green-200">
+            </div>
+
+            {/* Lesson Content */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 md:p-12 mb-8">
+              <div
+                className="prose prose-lg max-w-none
+                  prose-headings:text-gray-900 prose-headings:font-bold
+                  prose-h1:text-3xl prose-h1:mb-6 prose-h1:mt-8
+                  prose-h2:text-2xl prose-h2:mb-4 prose-h2:mt-6
+                  prose-h3:text-xl prose-h3:mb-3 prose-h3:mt-4
+                  prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-4
+                  prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+                  prose-strong:text-gray-900 prose-strong:font-semibold
+                  prose-ul:my-4 prose-ol:my-4
+                  prose-li:text-gray-700 prose-li:my-2
+                  prose-img:rounded-lg prose-img:shadow-md prose-img:my-8
+                  prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic
+                  prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded"
+                dangerouslySetInnerHTML={{
+                  __html: page?.content || "<p>No content available.</p>",
+                }}
+              />
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="flex items-center justify-between gap-4 py-6 border-t border-gray-200">
+              {previousLesson ? (
+                <Link
+                  href={`/student/courses/${courseId}/pages/${previousLesson.url || previousLesson._id}`}
+                  className="group flex items-center gap-3 px-6 py-3 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
+                >
+                  <ArrowLeft className="h-5 w-5 text-gray-400 group-hover:text-blue-600" />
+                  <div className="text-left">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Previous</p>
+                    <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                      {previousLesson.title}
+                    </p>
+                  </div>
+                </Link>
+              ) : (
+                <div />
+              )}
+
+              {nextLesson ? (
+                <Button
+                  onClick={handleMarkCompleteAndNext}
+                  disabled={isNavigating}
+                  className={cn(
+                    "group flex items-center gap-3 px-6 py-3 rounded-lg transition-all shadow-md hover:shadow-lg ml-auto",
+                    isComplete 
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-primary text-white"
+                  )}
+                >
+                  <div className="text-right">
+                    <p className={cn(
+                      "text-xs uppercase tracking-wide",
+                      isComplete ? "text-blue-100" : "text-green-100"
+                    )}>
+                      {isComplete ? "Next Lesson" : "Mark Complete & Next"}
+                    </p>
+                  </div>
+                  {isNavigating ? (
+                    <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <ArrowRight className="h-5 w-5" />
+                  )}
+                </Button>
+              ) : (
+                <div className="ml-auto flex items-center gap-2 px-6 py-3 bg-green-50 text-green-700 rounded-lg border-2 border-green-200">
                   <Check className="h-5 w-5" />
-                  <span className="font-medium">Completed</span>
+                  <span className="font-medium">Course Complete!</span>
                 </div>
               )}
             </div>
-            
-            {page.moduleTitle && (
-              <p className="text-sm text-gray-600">
-                Part of: <span className="font-medium">{page.moduleTitle}</span>
-              </p>
-            )}
           </div>
-
-          {/* Lesson Content */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 md:p-12 mb-8">
-            <div
-              className="prose prose-lg max-w-none
-                prose-headings:text-gray-900 prose-headings:font-bold
-                prose-h1:text-3xl prose-h1:mb-6 prose-h1:mt-8
-                prose-h2:text-2xl prose-h2:mb-4 prose-h2:mt-6
-                prose-h3:text-xl prose-h3:mb-3 prose-h3:mt-4
-                prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-4
-                prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-                prose-strong:text-gray-900 prose-strong:font-semibold
-                prose-ul:my-4 prose-ol:my-4
-                prose-li:text-gray-700 prose-li:my-2
-                prose-img:rounded-lg prose-img:shadow-md prose-img:my-8
-                prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic
-                prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded"
-              dangerouslySetInnerHTML={{
-                __html: page.content || "<p>No content available.</p>",
-              }}
-            />
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex items-center justify-between gap-4 py-6 border-t border-gray-200">
-            {previousLesson ? (
-              <Link
-                href={`/student/courses/${courseId}/pages/${previousLesson.url || previousLesson._id}`}
-                className="group flex items-center gap-3 px-6 py-3 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
-              >
-                <ArrowLeft className="h-5 w-5 text-gray-400 group-hover:text-blue-600" />
-                <div className="text-left">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">Previous</p>
-                  <p className="text-sm font-medium text-gray-900 line-clamp-1">
-                    {previousLesson.title}
-                  </p>
-                </div>
-              </Link>
-            ) : (
-              <div />
-            )}
-
-            {nextLesson ? (
-              <Link
-                href={`/student/courses/${courseId}/pages/${nextLesson.url || nextLesson._id}`}
-                className="group flex items-center gap-3 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg ml-auto"
-              >
-                <div className="text-right">
-                  <p className="text-xs text-blue-100 uppercase tracking-wide">Next Lesson</p>
-                  <p className="text-sm font-medium line-clamp-1">
-                    {nextLesson.title}
-                  </p>
-                </div>
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            ) : (
-              <div className="ml-auto flex items-center gap-2 px-6 py-3 bg-green-50 text-green-700 rounded-lg border-2 border-green-200">
-                <Check className="h-5 w-5" />
-                <span className="font-medium">Course Complete!</span>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </main>
 
       {/* Overlay for mobile sidebar */}

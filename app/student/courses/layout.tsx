@@ -40,6 +40,16 @@ export default function CoursesLayout({
   const [progress, setProgress] = useState<number>(0);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Auto-collapse when on a lesson page
+  const isLessonPage = pathname.includes("/pages/") && pathname.split("/").length > 5;
+
+  useEffect(() => {
+    // Auto-collapse sidebar when entering lesson mode
+    if (isLessonPage) {
+      setIsCollapsed(true);
+    }
+  }, [isLessonPage]);
+
   useEffect(() => {
     const load = async () => {
       if (!courseId) return;
@@ -106,6 +116,7 @@ export default function CoursesLayout({
                 <button
                   onClick={() => setIsCollapsed(!isCollapsed)}
                   className="text-gray-400 hover:text-gray-700 transition"
+                  title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 >
                   <PanelLeft
                     className={cn(
@@ -159,6 +170,7 @@ export default function CoursesLayout({
                           ? "bg-blue-50 text-blue-600"
                           : "text-gray-500 hover:text-gray-900 hover:bg-gray-50",
                       )}
+                      title={isCollapsed ? label : undefined}
                     >
                       <span
                         className={cn(
